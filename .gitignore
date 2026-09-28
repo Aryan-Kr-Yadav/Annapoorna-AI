@@ -39,3 +39,6 @@ Thumbs.db
 .vscode/
 .idea/
 .neon/
+
+# Deprecated Migration Folder
+km2/
