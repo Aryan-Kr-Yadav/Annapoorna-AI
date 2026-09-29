@@ -35,15 +35,48 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 @router.get("/{farm_id}", response_model=Envelope[dict])
-async def get_dashboard(farm_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+async def get_dashboard(
+    farm_id: UUID,
+    crop_cycle_id: UUID | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from typing import Optional
+    from app.models.diagnosis import Diagnosis
+
     farm = get_owned_farm(db, farm_id, user.id)
 
-    active_crop = (
+    # All active crops for this farm
+    active_crops_query = (
         db.query(CropCycle)
         .filter(CropCycle.farm_id == farm.id, CropCycle.status == CropCycleStatus.ACTIVE)
         .order_by(CropCycle.sowing_date.desc())
-        .first()
+        .all()
     )
+
+    # Determine which crop is selected
+    active_crop = None
+    if crop_cycle_id:
+        active_crop = (
+            db.query(CropCycle)
+            .filter(CropCycle.id == crop_cycle_id, CropCycle.farm_id == farm.id)
+            .first()
+        )
+    if not active_crop and active_crops_query:
+        active_crop = active_crops_query[0]
+
+    all_active_crops = []
+    for c in active_crops_query:
+        lc = calculate_lifecycle(c.crop_name, c.sowing_date)
+        all_active_crops.append({
+            "crop_cycle_id": str(c.id),
+            "crop_name": c.crop_name,
+            "season": f"{c.season.value} {c.year}",
+            "day_number": lc.day_number,
+            "current_stage": lc.current_stage,
+            "progress_percentage": lc.progress_percentage,
+            "is_selected": (str(c.id) == str(active_crop.id)) if active_crop else False,
+        })
 
     weather = await get_current_and_forecast(farm.latitude, farm.longitude, farm.district, farm.state)
     weather_intel = compute_weather_intelligence(weather) if weather and weather.get("available") else None
@@ -76,6 +109,8 @@ async def get_dashboard(farm_id: UUID, user: User = Depends(get_current_user), d
         "weather": weather,
         "weather_intelligence": weather_intel,
         "active_crop": None,
+        "all_active_crops": all_active_crops,
+        "recent_inspections": [],
         "todays_tasks": [],
         "irrigation": None,
         "expenses": None,
@@ -114,6 +149,25 @@ async def get_dashboard(farm_id: UUID, user: User = Depends(get_current_user), d
         )
         result["irrigation"] = next_irrigation_estimate(last_irrigation.date if last_irrigation else None)
         result["expenses"] = expense_summary(db, active_crop.id)
+
+        # Recent crop inspections for active crop
+        inspections = (
+            db.query(Diagnosis)
+            .filter(Diagnosis.crop_cycle_id == active_crop.id)
+            .order_by(Diagnosis.created_at.desc())
+            .limit(3)
+            .all()
+        )
+        result["recent_inspections"] = [
+            {
+                "id": str(d.id),
+                "date": d.created_at.date().isoformat(),
+                "possible_condition": d.possible_condition or "Healthy / No issue observed",
+                "severity": d.severity.value,
+                "confidence": d.confidence_percentage,
+            }
+            for d in inspections
+        ]
 
         if weather.get("available"):
             tomorrow_date = date.today() + timedelta(days=1)

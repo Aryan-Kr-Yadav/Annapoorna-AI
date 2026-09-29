@@ -52,7 +52,27 @@ def _get_owned_session(db: Session, session_id: UUID, user_id: UUID) -> ChatSess
 def create_session(
     payload: ChatSessionCreate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    session = ChatSession(user_id=user.id, **payload.model_dump())
+    from app.models.farm import Farm
+    from app.models.crop import CropCycle
+
+    farm_id = payload.farm_id
+    crop_cycle_id = payload.crop_cycle_id
+
+    if farm_id:
+        farm = db.query(Farm).filter(Farm.id == farm_id, Farm.user_id == user.id).first()
+        if not farm:
+            raise HTTPException(status_code=400, detail="Farm not found or not owned by you.")
+        if crop_cycle_id:
+            crop = db.query(CropCycle).filter(CropCycle.id == crop_cycle_id, CropCycle.farm_id == farm.id).first()
+            if not crop:
+                raise HTTPException(status_code=400, detail="Crop cycle not found on specified farm.")
+
+    session = ChatSession(
+        user_id=user.id,
+        farm_id=farm_id,
+        crop_cycle_id=crop_cycle_id,
+        title=payload.title or "New conversation",
+    )
     db.add(session)
     db.commit()
     db.refresh(session)
@@ -68,12 +88,34 @@ def list_sessions(user: User = Depends(get_current_user), db: Session = Depends(
 
 
 @router.put("/sessions/{session_id}", response_model=Envelope[ChatSessionOut])
-def rename_session(
+def update_session(
     session_id: UUID, payload: ChatSessionUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
+    from app.models.farm import Farm
+    from app.models.crop import CropCycle
+
     session = _get_owned_session(db, session_id, user.id)
-    if payload.title:
+    if payload.title is not None:
         session.title = payload.title
+    if payload.farm_id is not None:
+        if payload.farm_id:
+            farm = db.query(Farm).filter(Farm.id == payload.farm_id, Farm.user_id == user.id).first()
+            if not farm:
+                raise HTTPException(status_code=400, detail="Farm not found or not owned by you.")
+            session.farm_id = payload.farm_id
+        else:
+            session.farm_id = None
+            session.crop_cycle_id = None
+
+    if payload.crop_cycle_id is not None:
+        if payload.crop_cycle_id and session.farm_id:
+            crop = db.query(CropCycle).filter(CropCycle.id == payload.crop_cycle_id, CropCycle.farm_id == session.farm_id).first()
+            if not crop:
+                raise HTTPException(status_code=400, detail="Crop cycle not found on this farm.")
+            session.crop_cycle_id = payload.crop_cycle_id
+        else:
+            session.crop_cycle_id = None
+
     db.commit()
     db.refresh(session)
     return Envelope(data=ChatSessionOut.model_validate(session))
@@ -112,10 +154,31 @@ async def send_message(
     farm_context = build_farm_crop_context(db, user, session.farm_id, session.crop_cycle_id)
     rag_chunks = await retrieve_relevant_chunks(db, payload.content)
 
-    detected_style = detect_message_style(payload.content)
-    style_directive = f"\n\n[DETECTED USER MESSAGE STYLE: {detected_style} — You MUST respond strictly in {detected_style}.]"
+    # Language preference evaluation
+    user_prefs = user.preferences or {}
+    assistant_lang = user_prefs.get("assistant_language", "auto")
+    if assistant_lang == "en":
+        style_directive = "\n\n[LANGUAGE DIRECTIVE: User has explicitly chosen English. You MUST respond strictly in English.]"
+    elif assistant_lang == "hi":
+        style_directive = "\n\n[LANGUAGE DIRECTIVE: User has explicitly chosen Hindi. You MUST respond strictly in Hindi using Devanagari script.]"
+    elif assistant_lang == "hinglish":
+        style_directive = "\n\n[LANGUAGE DIRECTIVE: User has explicitly chosen Hinglish. You MUST respond naturally in Hinglish using Latin script.]"
+    else:
+        detected_style = detect_message_style(payload.content)
+        style_directive = f"\n\n[DETECTED USER MESSAGE STYLE: {detected_style} — You MUST respond strictly in {detected_style}.]"
 
-    system_content = SYSTEM_PROMPT + style_directive + "\n\n" + build_context_block(farm_context)
+    assistant_style = user_prefs.get("assistant_style", "balanced")
+    if assistant_style == "concise":
+        style_directive += "\n[RESPONSE LENGTH/STYLE: Concise. Keep answers brief, direct, and actionable with minimal introductory text.]"
+    elif assistant_style == "detailed":
+        style_directive += "\n[RESPONSE LENGTH/STYLE: Detailed. Provide thorough, step-by-step agronomic guidance with background rationale.]"
+
+    if session.farm_id:
+        context_block = build_context_block(farm_context)
+    else:
+        context_block = "[CONTEXT MODE: General Knowledge & Farming Concepts. No specific farm or crop is selected for this conversation.]"
+
+    system_content = SYSTEM_PROMPT + style_directive + "\n\n" + context_block
     if session.summary:
         system_content += f"\n\nSummary of earlier conversation: {session.summary}"
     if rag_chunks:

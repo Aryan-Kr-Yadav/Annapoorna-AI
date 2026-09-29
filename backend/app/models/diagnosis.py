@@ -2,7 +2,7 @@ import enum
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy import Enum, Float, ForeignKey, String, Text
+from sqlalchemy import Enum, Float, ForeignKey, String, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -38,5 +38,6 @@ class Diagnosis(Base, UUIDPKMixin, TimestampMixin):
 
     recommendation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     is_follow_up: Mapped[bool] = mapped_column(default=False, server_default="false")
+    analysis_details: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     crop_cycle: Mapped["CropCycle"] = relationship(back_populates="diagnoses")

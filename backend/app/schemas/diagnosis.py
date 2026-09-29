@@ -21,3 +21,4 @@ class DiagnosisOut(IDTimestamped):
     severity: Severity
     recommendation: Optional[str]
     is_follow_up: bool
+    analysis_details: Optional[dict] = None

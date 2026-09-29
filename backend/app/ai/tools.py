@@ -372,7 +372,13 @@ async def execute_tool(db: Session, user: User, tool_name: str, args: dict) -> d
     if tool_name == "get_crop_health_history":
         crop_id = _parse_uuid(args.get("crop_cycle_id"))
         if not crop_id:
-            return {"error": "Invalid or missing crop_cycle_id. Please ask the user for a crop cycle ID."}
+            # Fallback to user's first active crop cycle if not explicitly passed
+            active_cycle = db.query(CropCycle).filter(CropCycle.user_id == user.id, CropCycle.status == CropCycleStatus.ACTIVE).first()
+            if active_cycle:
+                crop_id = active_cycle.id
+            else:
+                return {"error": "Invalid or missing crop_cycle_id and no active crop was found."}
+
         crop = get_owned_crop_cycle(db, crop_id, user.id)
         limit = args.get("limit", 5)
         diagnoses = (
@@ -382,16 +388,41 @@ async def execute_tool(db: Session, user: User, tool_name: str, args: dict) -> d
             .limit(limit)
             .all()
         )
+
+        history_items = []
+        for d in diagnoses:
+            details = d.analysis_details or {}
+            history_items.append({
+                "date": d.created_at.date().isoformat(),
+                "possible_condition": d.possible_condition or "No issue identified",
+                "severity": d.severity.value,
+                "confidence": d.confidence_percentage if d.confidence_percentage is not None else "unavailable",
+                "symptoms_reported": d.symptoms_reported or "Not specified",
+                "observations": details.get("observations") or [],
+                "immediate_actions": details.get("immediate_actions") or [],
+                "treatment_options": details.get("treatment_options") or [],
+                "monitoring": details.get("monitoring") or "Check symptoms in 2-3 days",
+            })
+
+        # Calculate severity progression trend if 2 or more inspections
+        progression_trend = "Single inspection recorded."
+        if len(diagnoses) >= 2:
+            latest_sev = diagnoses[0].severity.value
+            prev_sev = diagnoses[1].severity.value
+            sev_rank = {"low": 1, "medium": 2, "high": 3, "unknown": 0}
+            if sev_rank.get(latest_sev, 0) < sev_rank.get(prev_sev, 0):
+                progression_trend = f"Recorded severity improved from {prev_sev} ({diagnoses[1].created_at.date().isoformat()}) to {latest_sev} ({diagnoses[0].created_at.date().isoformat()})."
+            elif sev_rank.get(latest_sev, 0) > sev_rank.get(prev_sev, 0):
+                progression_trend = f"Recorded severity worsened from {prev_sev} ({diagnoses[1].created_at.date().isoformat()}) to {latest_sev} ({diagnoses[0].created_at.date().isoformat()})."
+            else:
+                progression_trend = f"Recorded severity remained {latest_sev} between {diagnoses[1].created_at.date().isoformat()} and {diagnoses[0].created_at.date().isoformat()}."
+
         return {
-            "history": [
-                {
-                    "date": d.created_at.date().isoformat(),
-                    "possible_condition": d.possible_condition,
-                    "confidence": d.confidence_percentage if d.confidence_percentage is not None else "unavailable",
-                    "severity": d.severity.value,
-                }
-                for d in diagnoses
-            ]
+            "crop_name": crop.crop_name,
+            "season": f"{crop.season.value} {crop.year}",
+            "total_inspections": len(diagnoses),
+            "progression_trend": progression_trend,
+            "history": history_items,
         }
 
     if tool_name == "get_today_tasks":

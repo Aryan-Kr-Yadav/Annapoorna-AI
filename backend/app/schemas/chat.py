@@ -15,6 +15,8 @@ class ChatSessionCreate(BaseModel):
 
 class ChatSessionUpdate(BaseModel):
     title: Optional[str] = None
+    farm_id: Optional[UUID] = None
+    crop_cycle_id: Optional[UUID] = None
 
 
 class ChatSessionOut(IDTimestamped):

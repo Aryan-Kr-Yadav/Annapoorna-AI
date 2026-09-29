@@ -1,38 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useFarms } from "@/lib/farm-context";
 import { useApi } from "@/lib/api-client";
 import { FarmSelector } from "@/components/layout/FarmSelector";
 import { CardSkeleton } from "@/components/ui/Skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Badge } from "@/components/ui/Badge";
-import { CloudSun, Droplets, Wind, ShieldAlert, Thermometer, Calendar, Clock } from "lucide-react";
+import {
+  CloudSun,
+  Droplets,
+  Wind,
+  ShieldAlert,
+  Thermometer,
+  Calendar,
+  Clock,
+  Sprout,
+  Tractor,
+} from "lucide-react";
 
 export default function WeatherPage() {
   const api = useApi();
-  const { selectedFarm } = useFarms();
+  const { selectedFarm, selectedCrop } = useFarms();
   const [weather, setWeather] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  function load() {
+  const load = useCallback(() => {
     if (!selectedFarm) return;
     setLoading(true);
     setError(null);
-    api.get<any>(`/farms/${selectedFarm.id}/weather`).then(setWeather).catch((e) => setError(e.message)).finally(() => setLoading(false));
-  }
-  useEffect(load, [selectedFarm?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    api
+      .get<any>(`/farms/${selectedFarm.id}/weather`)
+      .then(setWeather)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [api, selectedFarm?.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const intel = weather?.weather_intelligence || {};
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Header with Farm Location & Crop Advisory Context */}
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-primary-100 pb-4">
         <div>
-          <h1 className="text-2xl font-semibold text-primary-900">Weather Intelligence</h1>
-          <p className="text-xs text-primary-600">Weather-driven agricultural decision support for {selectedFarm?.name || "your farm"}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-primary-950">
+            Weather Intelligence
+          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-primary-600">
+            <span className="flex items-center gap-1 font-semibold text-primary-800">
+              <Tractor className="h-3.5 w-3.5 text-primary-600" />
+              Weather for: {selectedFarm?.name || "Your Farm"} ({selectedFarm?.district}, {selectedFarm?.state})
+            </span>
+            {selectedCrop && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1 font-semibold text-emerald-800">
+                  <Sprout className="h-3.5 w-3.5 text-emerald-600" />
+                  Crop Advisory: {selectedCrop.crop_name} ({selectedCrop.season})
+                </span>
+              </>
+            )}
+          </div>
         </div>
+
         <FarmSelector />
       </div>
 
@@ -47,112 +82,130 @@ export default function WeatherPage() {
               <div className="card md:col-span-2 flex flex-col justify-between space-y-4 bg-gradient-to-br from-white to-primary-50">
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-primary-500">Current Farm Conditions</span>
-                    <p className="mt-1 text-4xl font-bold text-primary-900">{Math.round(weather.current.temperature_c)}°C</p>
-                    <p className="text-sm font-medium text-primary-700 capitalize">{weather.current.condition}</p>
+                    <span className="text-xs font-semibold uppercase tracking-wider text-primary-500">
+                      Current Farm Conditions
+                    </span>
+                    <h2 className="text-3xl font-bold text-primary-900 mt-1">
+                      {Math.round(weather.current?.temperature_c)}°C
+                    </h2>
+                    <p className="text-sm font-medium text-primary-700 capitalize mt-0.5">
+                      {weather.current?.condition}
+                    </p>
                   </div>
-                  <CloudSun className="h-12 w-12 text-primary-600" strokeWidth={1.5} />
+                  <div className="text-right">
+                    <span className="text-xs text-primary-500 block">Humidity</span>
+                    <span className="text-lg font-bold text-primary-800">{weather.current?.humidity}%</span>
+                  </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2 border-t border-primary-100 pt-3 text-xs">
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-primary-100 text-xs">
                   <div>
-                    <span className="text-primary-500 flex items-center gap-1"><Droplets className="h-3.5 w-3.5 text-blue-500" /> Humidity</span>
-                    <p className="font-semibold text-primary-900">{weather.current.humidity_percent}%</p>
+                    <span className="text-primary-500 block">Wind Speed</span>
+                    <span className="font-semibold text-primary-800">{weather.current?.wind_kph} km/h</span>
                   </div>
                   <div>
-                    <span className="text-primary-500 flex items-center gap-1"><Wind className="h-3.5 w-3.5 text-teal-500" /> Wind Speed</span>
-                    <p className="font-semibold text-primary-900">{weather.current.wind_speed_kmh || 0} km/h</p>
+                    <span className="text-primary-500 block">Rainfall Today</span>
+                    <span className="font-semibold text-primary-800">{weather.current?.precipitation_mm || 0} mm</span>
                   </div>
                   <div>
-                    <span className="text-primary-500 flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-indigo-500" /> Best Window</span>
-                    <p className="font-semibold text-primary-900">6–10 AM</p>
+                    <span className="text-primary-500 block">Min / Max</span>
+                    <span className="font-semibold text-primary-800">
+                      {Math.round(weather.forecast?.[0]?.min_temp_c || 0)}° / {Math.round(weather.forecast?.[0]?.max_temp_c || 0)}°
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-primary-500 block">Rain Probability</span>
+                    <span className="font-semibold text-primary-800">{weather.forecast?.[0]?.rain_probability || 0}%</span>
                   </div>
                 </div>
               </div>
 
-              {/* Farming Condition Assessment */}
-              <div className="card flex flex-col justify-between space-y-3 border-l-4 border-l-primary-600">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-primary-500 uppercase">Farming Conditions</span>
-                  <Badge variant={intel.farming_condition_score === "CAUTION" ? "danger" : intel.farming_condition_score === "MODERATE" ? "warning" : "success"}>
-                    {intel.farming_condition_score || "GOOD"}
-                  </Badge>
+              {/* Farming Condition Score */}
+              <div className="card flex flex-col justify-between space-y-3 bg-gradient-to-br from-primary-600 to-emerald-700 text-white shadow-md">
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-emerald-200">
+                    Farming Condition Index
+                  </span>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-4xl font-extrabold">{intel.farming_condition_score ?? 85}</span>
+                    <span className="text-emerald-200 font-semibold text-sm">/ 100</span>
+                  </div>
+                  <p className="text-xs text-emerald-100 mt-1">
+                    Composite score factoring spraying windows, rain risk, thermal stress, and evapotranspiration.
+                  </p>
                 </div>
-                <p className="text-xs text-primary-700">{intel.score_description || "Favorable conditions for routine operations."}</p>
-                <div className="rounded-lg bg-primary-50 p-2.5 text-xs text-primary-800">
-                  <span className="font-semibold">Field Window:</span> {intel.best_farming_window || "Early morning recommended"}
+
+                <div className="rounded-xl bg-white/10 p-2.5 backdrop-blur-xs text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-emerald-100">Best Activity Window:</span>
+                    <span className="font-bold">{intel.best_farming_window || "Early Morning (6 AM - 9 AM)"}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Decision Intelligence Cards Grid */}
+            {/* Agronomic Recommendations & Stress Warnings */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {/* Rain & Irrigation Advisory */}
-              <div className="card space-y-2 border-t-2 border-t-blue-500">
-                <div className="flex items-center gap-2">
-                  <Droplets className="h-4 w-4 text-blue-600" />
-                  <h3 className="text-sm font-semibold text-primary-900">Irrigation Advisory</h3>
+              <div className="card space-y-2">
+                <div className="flex items-center gap-2 text-primary-500">
+                  <Wind className="h-4 w-4 text-sky-500" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Spraying Advisory</span>
                 </div>
-                <p className="text-xs text-primary-700">{intel.rain_advisory || "Dry weather expected. Maintain normal irrigation schedule."}</p>
+                <p className="text-base font-bold text-primary-950">{intel.spraying_condition || "Favorable"}</p>
+                <p className="text-xs text-primary-600">
+                  {selectedCrop ? `For ${selectedCrop.crop_name}: ` : ""}
+                  Spray early morning when wind speed is lowest to prevent chemical drift.
+                </p>
               </div>
 
-              {/* Disease Risk Signal */}
-              <div className="card space-y-2 border-t-2 border-t-amber-500">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldAlert className="h-4 w-4 text-amber-600" />
-                    <h3 className="text-sm font-semibold text-primary-900">Disease Risk Signal</h3>
-                  </div>
-                  <Badge variant={intel.disease_risk === "HIGH" ? "danger" : intel.disease_risk === "MODERATE" ? "warning" : "success"}>
-                    {intel.disease_risk || "LOW"}
-                  </Badge>
+              <div className="card space-y-2">
+                <div className="flex items-center gap-2 text-primary-500">
+                  <Droplets className="h-4 w-4 text-sky-500" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Rain & Irrigation</span>
                 </div>
-                <p className="text-xs text-primary-700">{intel.disease_description || "Low foliar disease risk today."}</p>
+                <p className="text-base font-bold text-primary-950">{intel.rain_advisory || "Normal Schedule"}</p>
+                <p className="text-xs text-primary-600">
+                  Check topsoil moisture before overhead irrigation if rain is forecasted.
+                </p>
               </div>
 
-              {/* Spraying Conditions */}
-              <div className="card space-y-2 border-t-2 border-t-emerald-500">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Wind className="h-4 w-4 text-emerald-600" />
-                    <h3 className="text-sm font-semibold text-primary-900">Spraying Window</h3>
-                  </div>
-                  <Badge variant={intel.spraying_condition === "AVOID" ? "danger" : intel.spraying_condition === "CAUTION" ? "warning" : "success"}>
-                    {intel.spraying_condition || "GOOD"}
-                  </Badge>
+              <div className="card space-y-2">
+                <div className="flex items-center gap-2 text-primary-500">
+                  <ShieldAlert className="h-4 w-4 text-amber-500" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Disease Risk</span>
                 </div>
-                <p className="text-xs text-primary-700">{intel.spraying_description || "Low wind speed and clear skies."}</p>
+                <p className="text-base font-bold text-amber-800">{intel.disease_risk || "Low Risk"}</p>
+                <p className="text-xs text-primary-600">
+                  High humidity combined with mild temperatures can trigger fungal rust or blight. Monitor lower leaves.
+                </p>
               </div>
             </div>
 
-            {/* Stress Warning if Present */}
-            {intel.stress_warning && (
-              <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900">
-                <Thermometer className="h-5 w-5 shrink-0 text-amber-700" />
-                <p className="font-medium">{intel.stress_warning}</p>
+            {/* 5-Day Forecast */}
+            {weather.forecast && weather.forecast.length > 0 && (
+              <div className="card space-y-3">
+                <h3 className="text-sm font-bold text-primary-950">5-Day Agricultural Forecast</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {weather.forecast.map((f: any, idx: number) => (
+                    <div key={idx} className="rounded-xl border border-primary-100 bg-primary-50/30 p-2.5 text-center text-xs space-y-1">
+                      <p className="font-bold text-primary-900">{f.date || `Day ${idx + 1}`}</p>
+                      <p className="text-primary-600 text-[11px] truncate">{f.condition}</p>
+                      <p className="font-semibold text-primary-800">
+                        {Math.round(f.min_temp_c)}° / {Math.round(f.max_temp_c)}°C
+                      </p>
+                      <Badge variant="default" className="text-[10px] px-1">
+                        Rain: {f.rain_probability || 0}%
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-
-            {/* 7-Day Forecast Timeline */}
-            <div>
-              <h2 className="text-base font-semibold text-primary-900 mb-3 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-primary-600" /> 7-Day Weather Forecast
-              </h2>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-7">
-                {weather.daily_forecast.map((d: any) => (
-                  <div key={d.date} className="card text-center space-y-1 hover:border-primary-300">
-                    <p className="text-xs font-semibold text-primary-600">
-                      {new Date(d.date).toLocaleDateString("en-IN", { weekday: "short", day: "numeric" })}
-                    </p>
-                    <p className="text-sm font-bold text-primary-900">{Math.round(d.temp_max_c)}° <span className="text-xs font-normal text-primary-500">/ {Math.round(d.temp_min_c)}°</span></p>
-                    <p className="text-xs text-blue-600 font-medium">{d.rain_probability_percent}% rain</p>
-                    <p className="text-[11px] text-primary-500 truncate" title={d.condition}>{d.condition}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         ) : (
-          <ErrorState message={weather.message} onRetry={load} />
+          <div className="card p-6 text-center text-primary-500 text-sm">
+            {weather.message || "Weather details for this location could not be fetched. Check coordinates in Farm settings."}
+          </div>
         )
       )}
     </div>

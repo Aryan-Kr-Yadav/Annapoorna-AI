@@ -49,7 +49,7 @@ class Farm(Base, UUIDPKMixin, TimestampMixin):
 
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
 
-    user: Mapped["User"] = relationship(back_populates="farms")
+    user: Mapped["User"] = relationship(back_populates="farms", foreign_keys=[user_id])
     crop_cycles: Mapped[List["CropCycle"]] = relationship(
         back_populates="farm", cascade="all, delete-orphan"
     )

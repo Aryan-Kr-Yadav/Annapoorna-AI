@@ -90,6 +90,22 @@ export interface DashboardData {
     current_stage: string | null;
     progress_percentage: number | null;
   } | null;
+  all_active_crops?: {
+    crop_cycle_id: string;
+    crop_name: string;
+    season: string;
+    day_number: number;
+    current_stage: string | null;
+    progress_percentage: number | null;
+    is_selected: boolean;
+  }[];
+  recent_inspections?: {
+    id: string;
+    date: string;
+    possible_condition: string;
+    severity: string;
+    confidence: number | null;
+  }[];
   todays_tasks: { id: string; title: string; task_type: string }[];
   irrigation: { estimated_next_date?: string; days_until_next: number | null; note: string } | null;
   expenses: { total: number; by_category: Record<string, number> } | null;
@@ -175,6 +191,20 @@ export interface Expense {
   notes: string | null;
 }
 
+export interface DiagnosisAnalysisDetails {
+  possible_condition: string | null;
+  severity: "low" | "medium" | "high" | "unknown";
+  confidence_percentage: number | null;
+  observations: string[];
+  possible_causes: string[];
+  immediate_actions: string[];
+  treatment_options: string[];
+  prevention: string[];
+  monitoring: string;
+  when_to_seek_expert_help: string;
+  disclaimer: string;
+}
+
 export interface Diagnosis {
   id: string;
   crop_cycle_id: string;
@@ -184,6 +214,38 @@ export interface Diagnosis {
   confidence_percentage: number | null;
   severity: "low" | "medium" | "high" | "unknown";
   recommendation: string | null;
+  analysis_details?: DiagnosisAnalysisDetails | null;
   is_follow_up: boolean;
   created_at: string;
+}
+
+export interface UserPreferences {
+  ui_language?: "en" | "hi";
+  assistant_language?: "auto" | "en" | "hi" | "hinglish";
+  assistant_style?: "concise" | "balanced" | "detailed";
+  assistant_auto_context?: boolean;
+  default_farm_id?: string | null;
+  default_crop_id?: string | null;
+  area_unit?: "acre" | "hectare";
+  temperature_unit?: "celsius" | "fahrenheit";
+  date_format?: "DD/MM/YYYY" | "YYYY-MM-DD" | "MMM D, YYYY";
+  notifications?: {
+    weather_alerts?: boolean;
+    task_reminders?: boolean;
+    crop_health_alerts?: boolean;
+    harvest_reminders?: boolean;
+    scheme_updates?: boolean;
+    market_alerts?: boolean;
+  };
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  full_name: string | null;
+  preferred_language: string;
+  default_farm_id?: string | null;
+  preferences?: UserPreferences;
+  created_at: string;
+  updated_at: string;
 }
