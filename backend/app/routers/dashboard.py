@@ -13,8 +13,11 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.crop import CropCycle, CropCycleStatus
+from app.models.crop_plan import CropPlan, CropPlanStatus
 from app.models.farm import Farm
+from app.models.harvest import Harvest
 from app.models.irrigation import IrrigationLog
+from app.models.sale import CropSale
 from app.models.task import CropTask, TaskStatus, TaskType
 from app.models.user import User
 from app.schemas.common import Envelope
@@ -26,7 +29,7 @@ from app.services.advisory_service import (
 from app.services.analytics_service import expense_summary
 from app.services.lifecycle_engine import calculate_lifecycle
 from app.services.ownership import get_owned_farm
-from app.services.weather_service import get_current_and_forecast
+from app.services.weather_service import compute_weather_intelligence, get_current_and_forecast
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -43,15 +46,42 @@ async def get_dashboard(farm_id: UUID, user: User = Depends(get_current_user), d
     )
 
     weather = await get_current_and_forecast(farm.latitude, farm.longitude, farm.district, farm.state)
+    weather_intel = compute_weather_intelligence(weather) if weather and weather.get("available") else None
+
+    # Unsold harvests check across farm crops
+    farm_crops = db.query(CropCycle).filter(CropCycle.farm_id == farm.id).all()
+    unsold_harvests = []
+    for c in farm_crops:
+        harvests = db.query(Harvest).filter(Harvest.crop_cycle_id == c.id).all()
+        sales = db.query(CropSale).filter(CropSale.crop_cycle_id == c.id).all()
+        total_harvested = sum(float(h.yield_quantity) for h in harvests)
+        total_sold = sum(float(s.quantity_sold) for s in sales)
+        remaining = max(0.0, total_harvested - total_sold)
+        if remaining > 0:
+            unsold_harvests.append({
+                "crop_cycle_id": str(c.id),
+                "crop_name": c.crop_name,
+                "remaining_quantity": round(remaining, 2),
+                "unit": harvests[0].yield_unit if harvests else "units",
+            })
+
+    # Saved crop plans count
+    saved_plans_count = db.query(CropPlan).filter(
+        CropPlan.farm_id == farm.id,
+        CropPlan.status == CropPlanStatus.SAVED
+    ).count()
 
     result: dict = {
         "farm": {"id": str(farm.id), "name": farm.name},
         "weather": weather,
+        "weather_intelligence": weather_intel,
         "active_crop": None,
         "todays_tasks": [],
         "irrigation": None,
         "expenses": None,
         "alerts": [],
+        "unsold_harvests": unsold_harvests,
+        "saved_plans_count": saved_plans_count,
     }
 
     if active_crop:

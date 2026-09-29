@@ -37,11 +37,42 @@ async function request<T>(
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (!isFormData) headers["Content-Type"] = "application/json";
 
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body ? (isFormData ? (body as FormData) : JSON.stringify(body)) : undefined,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body ? (isFormData ? (body as FormData) : JSON.stringify(body)) : undefined,
+    });
+  } catch (err: any) {
+    // If request failed and BASE_URL points to localhost/127.0.0.1, try alternative IP/host fallback
+    let fallbackUrl = "";
+    if (BASE_URL.includes("localhost")) {
+      fallbackUrl = BASE_URL.replace("localhost", "127.0.0.1");
+    } else if (BASE_URL.includes("127.0.0.1")) {
+      fallbackUrl = BASE_URL.replace("127.0.0.1", "localhost");
+    }
+
+    if (fallbackUrl) {
+      try {
+        res = await fetch(`${fallbackUrl}${path}`, {
+          method,
+          headers,
+          body: body ? (isFormData ? (body as FormData) : JSON.stringify(body)) : undefined,
+        });
+      } catch (fallbackErr: any) {
+        throw new ApiError(
+          `Backend server is offline or unreachable on ${BASE_URL} and ${fallbackUrl}. Please ensure the backend is running.`,
+          0
+        );
+      }
+    } else {
+      throw new ApiError(
+        `Backend server is offline or unreachable. Please ensure the backend server is running on ${BASE_URL}.`,
+        0
+      );
+    }
+  }
 
   let json: any = null;
   try {

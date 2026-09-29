@@ -269,6 +269,262 @@ function AnalyticsTab({ cropId }: { cropId: string }) {
   );
 }
 
+function HarvestSalesTab({ crop, onRefresh }: { crop: CropCycle; onRefresh: () => void }) {
+  const api = useApi();
+  const [harvests, setHarvests] = useState<any[]>([]);
+  const [salesSummary, setSalesSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showHarvestForm, setShowHarvestForm] = useState(false);
+  const [showSaleForm, setShowSaleForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [harvestForm, setHarvestForm] = useState({
+    harvest_date: new Date().toISOString().slice(0, 10),
+    yield_quantity: "",
+    yield_unit: "quintal",
+  });
+
+  const [saleForm, setSaleForm] = useState({
+    sale_date: new Date().toISOString().slice(0, 10),
+    quantity_sold: "",
+    quantity_unit: "quintal",
+    price_per_unit: "",
+    buyer_name: "",
+    notes: "",
+  });
+
+  function load() {
+    setLoading(true);
+    setError(null);
+    Promise.all([
+      api.get<any[]>(`/crops/${crop.id}/harvests`),
+      api.get<any>(`/crops/${crop.id}/sales`),
+    ])
+      .then(([h, s]) => {
+        setHarvests(h);
+        setSalesSummary(s);
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(load, [crop.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleAddHarvest(e: React.FormEvent) {
+    e.preventDefault();
+    if (!harvestForm.yield_quantity) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.post(`/crops/${crop.id}/harvests`, {
+        harvest_date: harvestForm.harvest_date,
+        yield_quantity: parseFloat(harvestForm.yield_quantity),
+        yield_unit: harvestForm.yield_unit,
+      });
+      setShowHarvestForm(false);
+      load();
+      onRefresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRecordSale(e: React.FormEvent) {
+    e.preventDefault();
+    if (!saleForm.quantity_sold || !saleForm.price_per_unit) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await api.post(`/crops/${crop.id}/sales`, {
+        sale_date: saleForm.sale_date,
+        quantity_sold: parseFloat(saleForm.quantity_sold),
+        quantity_unit: saleForm.quantity_unit,
+        price_per_unit: parseFloat(saleForm.price_per_unit),
+        buyer_name: saleForm.buyer_name || null,
+        notes: saleForm.notes || null,
+      });
+      setShowSaleForm(false);
+      load();
+      onRefresh();
+    } catch (err: any) {
+      setError(err.message || "Failed to record sale.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) return <CardSkeleton />;
+
+  const totalHarvested = salesSummary?.total_harvested_quantity || 0;
+  const totalSold = salesSummary?.total_quantity_sold || 0;
+  const remaining = salesSummary?.remaining_quantity || 0;
+  const totalRevenue = salesSummary?.total_revenue || 0;
+  const salesList = salesSummary?.sales || [];
+  const unit = salesSummary?.quantity_unit || "quintal";
+
+  return (
+    <div className="space-y-6">
+      {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+
+      {/* Summary Header */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="card">
+          <p className="text-xs text-primary-500">Status</p>
+          <div className="mt-1">
+            <Badge variant={crop.status === "sold" ? "success" : crop.status === "harvested" ? "warning" : "default"}>
+              {crop.status.toUpperCase()}
+            </Badge>
+          </div>
+        </div>
+        <div className="card">
+          <p className="text-xs text-primary-500">Harvested Quantity</p>
+          <p className="text-base font-semibold text-primary-900">{totalHarvested} {unit}</p>
+        </div>
+        <div className="card">
+          <p className="text-xs text-primary-500">Quantity Sold / Remaining</p>
+          <p className="text-base font-semibold text-primary-900">{totalSold} / <span className="text-emerald-700">{remaining} {unit}</span></p>
+        </div>
+        <div className="card">
+          <p className="text-xs text-primary-500">Total Sales Revenue</p>
+          <p className="text-base font-semibold text-emerald-800">{formatCurrencyINR(totalRevenue)}</p>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-lg font-medium text-primary-900">Harvest & Sales Records</h3>
+        <div className="flex gap-2">
+          <button onClick={() => setShowHarvestForm((s) => !s)} className="btn-secondary">
+            + Log Harvest
+          </button>
+          {totalHarvested > 0 && (
+            <button onClick={() => { setSaleForm({ ...saleForm, quantity_unit: unit }); setShowSaleForm(true); }} className="btn-primary">
+              Record Sale
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Harvest Form */}
+      {showHarvestForm && (
+        <form onSubmit={handleAddHarvest} className="card space-y-3">
+          <h4 className="font-semibold text-primary-900 text-sm">Record Crop Harvest</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="label">Harvest Date</label>
+              <input type="date" required className="input" value={harvestForm.harvest_date} onChange={(e) => setHarvestForm({ ...harvestForm, harvest_date: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Yield Quantity</label>
+              <input type="number" step="0.01" min="0.01" required className="input" value={harvestForm.yield_quantity} onChange={(e) => setHarvestForm({ ...harvestForm, yield_quantity: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Unit</label>
+              <select className="input" value={harvestForm.yield_unit} onChange={(e) => setHarvestForm({ ...harvestForm, yield_unit: e.target.value })}>
+                <option value="quintal">quintal</option>
+                <option value="kg">kg</option>
+                <option value="tonne">tonne</option>
+                <option value="bag">bag</option>
+              </select>
+            </div>
+          </div>
+          <button disabled={submitting} className="btn-primary">{submitting ? "Saving..." : "Save Harvest"}</button>
+        </form>
+      )}
+
+      {/* Harvests List */}
+      <div>
+        <h4 className="text-sm font-semibold text-primary-900 mb-2">Recorded Harvests ({harvests.length})</h4>
+        {harvests.length === 0 ? (
+          <EmptyState title="No harvest recorded" description="When this crop is harvested, click Log Harvest above." />
+        ) : (
+          <div className="card divide-y divide-primary-100">
+            {harvests.map((h) => (
+              <div key={h.id} className="flex items-center justify-between py-2 text-sm">
+                <div>
+                  <p className="font-medium text-primary-900">Harvested {h.yield_quantity} {h.yield_unit}</p>
+                  <p className="text-xs text-primary-500">Date: {formatDate(h.harvest_date)}</p>
+                </div>
+                {h.revenue && <p className="text-xs text-primary-600">Estimated Value: {formatCurrencyINR(h.revenue)}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sales List */}
+      <div>
+        <h4 className="text-sm font-semibold text-primary-900 mb-2">Recorded Produce Sales ({salesList.length})</h4>
+        {salesList.length === 0 ? (
+          <EmptyState title="No sales recorded yet" description="Record produce sales to track actual revenue and profit." />
+        ) : (
+          <div className="card divide-y divide-primary-100">
+            {salesList.map((s: any) => (
+              <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+                <div>
+                  <p className="font-medium text-primary-900">Sold {s.quantity_sold} {s.quantity_unit} @ {formatCurrencyINR(s.price_per_unit)}/{s.quantity_unit}</p>
+                  <p className="text-xs text-primary-500">Date: {formatDate(s.sale_date)} {s.buyer_name && `• Buyer: ${s.buyer_name}`}</p>
+                  {s.notes && <p className="text-xs text-primary-400 mt-0.5">{s.notes}</p>}
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-emerald-800">{formatCurrencyINR(s.total_sale_value)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Record Sale Modal */}
+      {showSaleForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <form onSubmit={handleRecordSale} className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl border border-primary-100 space-y-4">
+            <h3 className="text-lg font-semibold text-primary-900">Record Produce Sale</h3>
+            <p className="text-xs text-primary-600">
+              Remaining unsold harvest: <strong>{remaining} {unit}</strong>
+            </p>
+            {error && <p className="rounded-lg bg-red-50 p-2 text-xs text-red-700">{error}</p>}
+            <div>
+              <label className="label">Sale Date</label>
+              <input type="date" required className="input" value={saleForm.sale_date} onChange={(e) => setSaleForm({ ...saleForm, sale_date: e.target.value })} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Quantity Sold</label>
+                <input type="number" step="0.01" max={remaining > 0 ? remaining : undefined} required className="input" value={saleForm.quantity_sold} onChange={(e) => setSaleForm({ ...saleForm, quantity_sold: e.target.value })} />
+              </div>
+              <div>
+                <label className="label">Unit</label>
+                <input className="input bg-primary-50" readOnly value={unit} />
+              </div>
+            </div>
+            <div>
+              <label className="label">Price per {unit} (₹)</label>
+              <input type="number" step="0.01" required className="input" placeholder="e.g. 2150" value={saleForm.price_per_unit} onChange={(e) => setSaleForm({ ...saleForm, price_per_unit: e.target.value })} />
+            </div>
+            {saleForm.quantity_sold && saleForm.price_per_unit && (
+              <div className="rounded-lg bg-emerald-50 p-2.5 text-xs text-emerald-900">
+                Total Sale Value: <strong>{formatCurrencyINR(parseFloat(saleForm.quantity_sold) * parseFloat(saleForm.price_per_unit))}</strong>
+              </div>
+            )}
+            <div>
+              <label className="label">Buyer / Market Name (Optional)</label>
+              <input className="input" placeholder="e.g. Karnal Mandi Trader / Local Co-op" value={saleForm.buyer_name} onChange={(e) => setSaleForm({ ...saleForm, buyer_name: e.target.value })} />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setShowSaleForm(false)} className="btn-secondary">Cancel</button>
+              <button disabled={submitting} className="btn-primary">{submitting ? "Saving..." : "Record Sale"}</button>
+            </div>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CropDetailPage() {
   const { id } = useParams<{ id: string }>();
   const api = useApi();
@@ -301,6 +557,7 @@ export default function CropDetailPage() {
         { id: "irrigation", label: "Irrigation", content: <IrrigationTab cropId={crop.id} /> },
         { id: "soil", label: "Soil", content: <SoilTab cropId={crop.id} /> },
         { id: "expenses", label: "Expenses", content: <ExpensesTab cropId={crop.id} /> },
+        { id: "harvest", label: "Harvest & Sales", content: <HarvestSalesTab crop={crop} onRefresh={load} /> },
         { id: "analytics", label: "Analytics", content: <AnalyticsTab cropId={crop.id} /> },
       ]}
     />

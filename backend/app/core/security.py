@@ -26,7 +26,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.user import User
 
-logger = logging.getLogger("krishimitra.security")
+logger = logging.getLogger("annapoorna.security")
 settings = get_settings()
 bearer_scheme = HTTPBearer(auto_error=False)
 

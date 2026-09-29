@@ -1,15 +1,15 @@
-from uuid import UUID
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.crop import CropCycleStatus
 from app.models.harvest import Harvest
+from app.models.sale import CropSale
 from app.models.user import User
 from app.schemas.common import Envelope
 from app.schemas.harvest import HarvestCreate, HarvestOut, SeasonReportOut
+from app.schemas.sale import CropSaleCreate, CropSaleOut, CropSaleSummaryOut
 from app.services.analytics_service import season_report
 from app.services.ownership import get_owned_crop_cycle
 
@@ -29,8 +29,7 @@ def create_harvest(
     harvest = Harvest(crop_cycle_id=crop.id, revenue=revenue, **data)
     db.add(harvest)
 
-    # Marking the crop cycle harvested is a meaningful lifecycle event —
-    # do it here rather than requiring a separate manual PUT.
+    # Marking the crop cycle harvested is a meaningful lifecycle event
     crop.status = CropCycleStatus.HARVESTED
     crop.actual_harvest_date = payload.harvest_date
 
@@ -49,6 +48,77 @@ def list_harvests(crop_id: UUID, user: User = Depends(get_current_user), db: Ses
         .all()
     )
     return Envelope(data=[HarvestOut.model_validate(h) for h in harvests])
+
+
+@router.post("/crops/{crop_id}/sales", response_model=Envelope[CropSaleOut])
+def record_crop_sale(
+    crop_id: UUID,
+    payload: CropSaleCreate,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    crop = get_owned_crop_cycle(db, crop_id, user.id)
+
+    # Calculate harvested quantity vs already sold quantity
+    harvests = db.query(Harvest).filter(Harvest.crop_cycle_id == crop.id).all()
+    existing_sales = db.query(CropSale).filter(CropSale.crop_cycle_id == crop.id).all()
+
+    total_harvested = sum(float(h.yield_quantity) for h in harvests)
+    already_sold = sum(float(s.quantity_sold) for s in existing_sales)
+    remaining = max(0.0, total_harvested - already_sold)
+
+    if total_harvested > 0 and payload.quantity_sold > (remaining + 0.01):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot sell {payload.quantity_sold} {payload.quantity_unit}. Maximum available remaining harvested produce is {remaining:.2f} {payload.quantity_unit}."
+        )
+
+    total_sale_value = round(float(payload.quantity_sold) * float(payload.price_per_unit), 2)
+
+    sale = CropSale(
+        crop_cycle_id=crop.id,
+        sale_date=payload.sale_date,
+        quantity_sold=payload.quantity_sold,
+        quantity_unit=payload.quantity_unit,
+        price_per_unit=payload.price_per_unit,
+        total_sale_value=total_sale_value,
+        buyer_name=payload.buyer_name,
+        notes=payload.notes,
+    )
+    db.add(sale)
+
+    crop.status = CropCycleStatus.SOLD
+    db.commit()
+    db.refresh(sale)
+
+    return Envelope(message="Crop sale recorded successfully.", data=CropSaleOut.model_validate(sale))
+
+
+@router.get("/crops/{crop_id}/sales", response_model=Envelope[CropSaleSummaryOut])
+def get_crop_sales_summary(
+    crop_id: UUID,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    crop = get_owned_crop_cycle(db, crop_id, user.id)
+    harvests = db.query(Harvest).filter(Harvest.crop_cycle_id == crop.id).all()
+    sales = db.query(CropSale).filter(CropSale.crop_cycle_id == crop.id).order_by(CropSale.sale_date.desc()).all()
+
+    total_harvested = sum(float(h.yield_quantity) for h in harvests)
+    total_sold = sum(float(s.quantity_sold) for s in sales)
+    unit = sales[0].quantity_unit if sales else (harvests[0].yield_unit if harvests else "quintal")
+    total_revenue = sum(float(s.total_sale_value) for s in sales)
+    remaining = max(0.0, total_harvested - total_sold)
+
+    summary = CropSaleSummaryOut(
+        total_harvested_quantity=total_harvested,
+        total_quantity_sold=total_sold,
+        remaining_quantity=remaining,
+        quantity_unit=unit,
+        total_revenue=total_revenue,
+        sales=[CropSaleOut.model_validate(s) for s in sales],
+    )
+    return Envelope(data=summary)
 
 
 @router.get("/crops/{crop_id}/season-report", response_model=Envelope[SeasonReportOut])

@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 from app.ai import tools as ai_tools
 from app.ai.context_builder import build_farm_crop_context
 from app.ai.groq_client import GroqConfigError, GroqResponseError, chat_completion
-from app.ai.prompts import SYSTEM_PROMPT, build_context_block
+from app.ai.prompts import SYSTEM_PROMPT, build_context_block, detect_message_style
 from app.ai.rag import retrieve_relevant_chunks
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -112,7 +112,10 @@ async def send_message(
     farm_context = build_farm_crop_context(db, user, session.farm_id, session.crop_cycle_id)
     rag_chunks = await retrieve_relevant_chunks(db, payload.content)
 
-    system_content = SYSTEM_PROMPT + "\n\n" + build_context_block(farm_context)
+    detected_style = detect_message_style(payload.content)
+    style_directive = f"\n\n[DETECTED USER MESSAGE STYLE: {detected_style} — You MUST respond strictly in {detected_style}.]"
+
+    system_content = SYSTEM_PROMPT + style_directive + "\n\n" + build_context_block(farm_context)
     if session.summary:
         system_content += f"\n\nSummary of earlier conversation: {session.summary}"
     if rag_chunks:
@@ -175,11 +178,11 @@ async def send_message(
             break
     except GroqConfigError as exc:
         logger.error("GroqConfigError in chat session %s: %s", session.id, exc)
-        final_text = f"KrishiMitra AI isn't fully configured yet: {exc}"
+        final_text = f"Annapoorna AI isn't fully configured yet: {exc}"
     except GroqResponseError as exc:
         logger.error("GroqResponseError in chat session %s: %s", session.id, exc)
         final_text = (
-            "KrishiMitra AI is temporarily unavailable. Please try again in a moment — "
+            "Annapoorna AI is temporarily unavailable. Please try again in a moment — "
             "your message has been saved."
         )
     except Exception as exc:

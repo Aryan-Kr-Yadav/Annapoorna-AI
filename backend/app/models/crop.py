@@ -22,6 +22,7 @@ class CropCycleStatus(str, enum.Enum):
     PLANNED = "planned"
     ACTIVE = "active"
     HARVESTED = "harvested"
+    SOLD = "sold"
     ARCHIVED = "archived"
 
 
@@ -62,3 +63,4 @@ class CropCycle(Base, UUIDPKMixin, TimestampMixin):
     diagnoses: Mapped[List["Diagnosis"]] = relationship(back_populates="crop_cycle", cascade="all, delete-orphan")
     expenses: Mapped[List["Expense"]] = relationship(back_populates="crop_cycle", cascade="all, delete-orphan")
     harvests: Mapped[List["Harvest"]] = relationship(back_populates="crop_cycle", cascade="all, delete-orphan")
+    sales: Mapped[List["CropSale"]] = relationship(back_populates="crop_cycle", cascade="all, delete-orphan")

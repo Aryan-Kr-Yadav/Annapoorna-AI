@@ -1,10 +1,13 @@
-# KrishiMitra AI 2.0
+# Annapoorna AI
 
-**An Intelligent Farm Management & Decision-Support Platform**
+**Context-Aware Farm Intelligence Platform**
 
-KrishiMitra AI 2.0 follows a farmer's crop through its entire lifecycle —
+Intelligence that grows with your farm.
+
+Annapoorna AI is a context-aware farm intelligence platform that maintains a digital memory of each farm and crop cycle and combines farm data with weather, crop health, irrigation, market information and verified agricultural knowledge to provide personalized, actionable decision support from sowing to harvest.
+Annapoorna AI follows a farmer's crop through its entire lifecycle —
 sowing, daily tasks, irrigation, soil, crop health, expenses, harvest,
-and profit — with a context-aware AI assistant (KrishiMitra AI, powered
+and profit — with a context-aware AI assistant (Annapoorna AI, powered
 by Groq) layered on top of deterministic farm data rather than
 replacing it.
 

@@ -1,9 +1,9 @@
 """
-Deterministic Scheme Matching Engine for KrishiMitra AI.
+Deterministic Scheme Matching Engine for Annapoorna AI.
 
 CORE PRINCIPLES:
 1. Groq is NEVER used for eligibility filtering or fact generation.
-2. KrishiMitra NEVER claims final eligibility ("You are eligible" or "100% Eligible").
+2. Annapoorna AI NEVER claims final eligibility ("You are eligible" or "100% Eligible").
    Wording is strictly "Potentially relevant based on your profile" and "Needs verification".
 3. Schemes are filtered against verified structured criteria from the database.
 4. Missing farmer information is explicitly surfaced under `missing_information`.

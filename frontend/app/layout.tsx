@@ -3,8 +3,8 @@ import { AuthProvider } from "@/lib/auth-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KrishiMitra AI — Intelligent Farm Management",
-  description: "An intelligent farm management and decision-support platform for Indian farmers.",
+  title: "Annapoorna AI — Intelligent Farm Management",
+  description: "Annapoorna AI — A context-aware farm intelligence platform providing personalized agricultural decision support from sowing to harvest.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -53,9 +53,17 @@ def update_farm(
 
 
 @router.delete("/{farm_id}", response_model=Envelope[None])
-def archive_farm(farm_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Archives rather than hard-deletes, so farm history is preserved for analytics."""
+def delete_farm(
+    farm_id: UUID,
+    hard_delete: bool = False,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Safely deletes or archives a farm and handles associated records."""
     farm = get_owned_farm(db, farm_id, user.id)
-    farm.is_archived = True
+    if hard_delete:
+        db.delete(farm)
+    else:
+        farm.is_archived = True
     db.commit()
-    return Envelope(message="Farm archived.")
+    return Envelope(message="Farm deleted successfully.")

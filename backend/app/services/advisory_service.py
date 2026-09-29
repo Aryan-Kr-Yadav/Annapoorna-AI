@@ -5,7 +5,7 @@ crop stage, soil and irrigation history.
 Pipeline:
 Open-Meteo Weather (Temperature, Humidity, Rain Probability, Precipitation, Wind)
   ↓
-KrishiMitra Rules Engine
+Annapoorna Rules Engine
   ↓
 Structured Alerts & Advisory:
 - "Irrigation is scheduled tomorrow, but rain is likely. Consider delaying it."
@@ -65,7 +65,7 @@ def generate_farm_weather_alerts(
 ) -> list[dict]:
     """
     Evaluates weather parameters from Open-Meteo against deterministic
-    KrishiMitra agronomic rules to generate practical farm alerts.
+    Annapoorna agronomic rules to generate practical farm alerts.
     """
     alerts = []
     if not weather or not weather.get("available"):
@@ -75,7 +75,7 @@ def generate_farm_weather_alerts(
     daily_forecast = weather.get("daily_forecast", [])
     tomorrow = daily_forecast[1] if len(daily_forecast) > 1 else None
 
-    # Rule 1: Irrigation vs Rain Alert (KrishiMitra rule: delay irrigation if rain likely)
+    # Rule 1: Irrigation vs Rain Alert (Annapoorna rule: delay irrigation if rain likely)
     tomorrow_pop = tomorrow.get("rain_probability_percent") if tomorrow else None
     alert = build_irrigation_alert(
         rain_probability_tomorrow=tomorrow_pop,

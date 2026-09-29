@@ -16,7 +16,7 @@ settings = get_settings()
 
 class StorageBackend(ABC):
     @abstractmethod
-    def upload_image(self, file_bytes: bytes, filename: str, folder: str = "krishimitra") -> str:
+    def upload_image(self, file_bytes: bytes, filename: str, folder: str = "annapoorna") -> str:
         """Uploads an image, returns a publicly-fetchable URL."""
 
     @abstractmethod
@@ -31,7 +31,7 @@ class CloudinaryBackend(StorageBackend):
         cloudinary.config(cloudinary_url=settings.CLOUDINARY_URL)
         self._cloudinary = cloudinary
 
-    def upload_image(self, file_bytes: bytes, filename: str, folder: str = "krishimitra") -> str:
+    def upload_image(self, file_bytes: bytes, filename: str, folder: str = "annapoorna") -> str:
         import cloudinary.uploader
 
         result = cloudinary.uploader.upload(
@@ -61,7 +61,7 @@ class S3Backend(StorageBackend):
         )
         self._bucket = settings.S3_BUCKET
 
-    def upload_image(self, file_bytes: bytes, filename: str, folder: str = "krishimitra") -> str:
+    def upload_image(self, file_bytes: bytes, filename: str, folder: str = "annapoorna") -> str:
         key = f"{folder}/{filename}"
         self._client.put_object(Bucket=self._bucket, Key=key, Body=file_bytes, ContentType="image/jpeg")
         return f"https://{self._bucket}.s3.{settings.S3_REGION}.amazonaws.com/{key}"
@@ -77,7 +77,7 @@ class S3Backend(StorageBackend):
 class NullBackend(StorageBackend):
     """Used when no storage provider is configured yet (local dev)."""
 
-    def upload_image(self, file_bytes: bytes, filename: str, folder: str = "krishimitra") -> str:
+    def upload_image(self, file_bytes: bytes, filename: str, folder: str = "annapoorna") -> str:
         raise RuntimeError(
             "Image storage is not configured. Set CLOUDINARY_URL or S3 credentials in the backend .env."
         )

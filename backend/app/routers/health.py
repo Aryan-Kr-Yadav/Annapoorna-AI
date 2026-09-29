@@ -26,7 +26,7 @@ from app.schemas.common import Envelope
 from app.schemas.diagnosis import DiagnosisOut
 from app.services.ownership import get_owned_crop_cycle
 
-logger = logging.getLogger("krishimitra.crop_doctor")
+logger = logging.getLogger("annapoorna.crop_doctor")
 
 router = APIRouter(tags=["crop-doctor"])
 

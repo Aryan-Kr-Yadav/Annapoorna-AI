@@ -5,7 +5,7 @@ const FEATURES = [
   { icon: Sprout, title: "Crop Lifecycle Tracking", text: "From sowing to harvest, know exactly what stage every crop is in." },
   { icon: CloudSun, title: "Weather & Irrigation", text: "Weather-aware irrigation guidance based on your crop and soil." },
   { icon: Stethoscope, title: "Crop Doctor", text: "Photograph a leaf, get an honest read on possible issues — with history." },
-  { icon: MessageCircle, title: "KrishiMitra AI Assistant", text: "Ask questions in Hindi, English, or Hinglish — it knows your farm." },
+  { icon: MessageCircle, title: "Annapoorna AI Assistant", text: "Ask questions in Hindi, English, or Hinglish — it knows your farm." },
   { icon: Landmark, title: "Government Schemes", text: "Find potentially relevant schemes for your state and crop." },
   { icon: LineChart, title: "Expenses & Profit", text: "Track spending and see real profit and ROI, season after season." },
 ];
@@ -16,7 +16,7 @@ export default function LandingPage() {
       <header className="flex items-center justify-between px-6 py-5 md:px-12">
         <div className="flex items-center gap-2 text-primary-800">
           <Sprout className="h-6 w-6" />
-          <span className="text-lg font-semibold">KrishiMitra AI</span>
+          <span className="text-lg font-semibold">Annapoorna AI</span>
         </div>
         <div className="flex gap-3">
           <Link href="/sign-in" className="btn-secondary">Log in</Link>
@@ -29,7 +29,7 @@ export default function LandingPage() {
           Your farm, understood — season after season.
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-base text-primary-700 md:text-lg">
-          KrishiMitra AI 2.0 is an intelligent farm management platform that follows every crop
+          Annapoorna AI is an intelligent farm management platform that follows every crop
           from sowing to harvest — tasks, irrigation, soil, crop health, expenses, schemes, and
           an AI assistant that actually knows your farm.
         </p>
@@ -50,7 +50,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-primary-100 px-6 py-8 text-center text-sm text-primary-500">
-        © {new Date().getFullYear()} KrishiMitra AI. Built for Indian farmers.
+        © {new Date().getFullYear()} Annapoorna AI. Built for Indian farmers.
       </footer>
     </main>
   );

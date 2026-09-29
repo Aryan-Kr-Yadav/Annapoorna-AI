@@ -11,7 +11,20 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrencyINR } from "@/lib/utils";
-import { Calendar, CloudSun, Droplets, Sprout, CheckSquare, AlertTriangle, Wallet } from "lucide-react";
+import {
+  Calendar,
+  CloudSun,
+  Droplets,
+  Sprout,
+  CheckSquare,
+  AlertTriangle,
+  Wallet,
+  DollarSign,
+  Compass,
+  Wind,
+  ShieldAlert,
+  ArrowRight,
+} from "lucide-react";
 import type { DashboardData } from "@/lib/types";
 
 function getGreeting(d: Date): string {
@@ -131,10 +144,35 @@ export default function DashboardPage() {
 
       {!loading && !error && data && (
         <>
+          {/* Unsold Harvest Banner */}
+          {data.unsold_harvests && data.unsold_harvests.length > 0 && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="rounded-full bg-emerald-100 p-2 text-emerald-700">
+                  <DollarSign className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-emerald-950">
+                    Harvest Ready for Sale!
+                  </h3>
+                  <p className="text-xs text-emerald-800 mt-0.5">
+                    You have {data.unsold_harvests.map(h => `${h.remaining_quantity} ${h.unit} of ${h.crop_name}`).join(", ")} available in inventory.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/crops/${data.unsold_harvests[0].crop_cycle_id}`}
+                className="btn-primary text-xs py-1.5 px-3 bg-emerald-700 hover:bg-emerald-800 text-white shrink-0 flex items-center gap-1"
+              >
+                Record Crop Sale <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
+
           {!data.active_crop && (
             <EmptyState
               title="No active crop yet"
-              description="Add a crop cycle to this farm to start tracking its lifecycle, tasks and health."
+              description="Add a crop cycle or select a saved crop plan to start tracking your farm."
               action={<Link href={`/farms/${selectedFarm?.id}`} className="btn-primary">Add a crop</Link>}
             />
           )}
@@ -156,25 +194,49 @@ export default function DashboardPage() {
           )}
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Weather Intelligence Card */}
             <div className="card">
-              <div className="flex items-center gap-2 text-primary-500"><CloudSun className="h-4 w-4" /><span className="text-xs font-medium uppercase">Weather</span></div>
+              <div className="flex items-center gap-2 text-primary-500">
+                <CloudSun className="h-4 w-4 text-sky-500" />
+                <span className="text-xs font-medium uppercase">Weather Intelligence</span>
+              </div>
               {data.weather?.available ? (
                 <>
-                  <p className="mt-2 text-2xl font-semibold text-primary-900">{Math.round(data.weather.current?.temperature_c)}°C</p>
+                  <div className="mt-2 flex items-baseline justify-between">
+                    <p className="text-2xl font-semibold text-primary-900">{Math.round(data.weather.current?.temperature_c)}°C</p>
+                    {data.weather_intelligence && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded bg-primary-100 text-primary-800">
+                        Score: {data.weather_intelligence.farming_condition_score}/100
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-primary-600 capitalize">{data.weather.current?.condition}</p>
-                  {data.weather.daily_forecast?.[1] && (
-                    <p className="mt-1 text-xs text-primary-500">
-                      Tomorrow: {data.weather.daily_forecast[1].rain_probability_percent}% chance of rain
-                    </p>
+
+                  {data.weather_intelligence && (
+                    <div className="mt-3 space-y-1.5 border-t border-primary-100 pt-2 text-xs">
+                      <div className="flex items-center justify-between text-primary-700">
+                        <span className="text-primary-500">Spraying condition:</span>
+                        <span className="font-semibold">{data.weather_intelligence.spraying_condition}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-primary-700">
+                        <span className="text-primary-500">Disease risk:</span>
+                        <span className="font-semibold text-amber-700">{data.weather_intelligence.disease_risk}</span>
+                      </div>
+                    </div>
                   )}
+
+                  <Link href="/weather" className="mt-3 inline-block text-xs font-medium text-sky-700 hover:underline">
+                    View full weather advisory →
+                  </Link>
                 </>
               ) : (
                 <p className="mt-2 text-sm text-primary-500">{data.weather?.message || "Weather information is temporarily unavailable."}</p>
               )}
             </div>
 
+            {/* Irrigation Card */}
             <div className="card">
-              <div className="flex items-center gap-2 text-primary-500"><Droplets className="h-4 w-4" /><span className="text-xs font-medium uppercase">Irrigation</span></div>
+              <div className="flex items-center gap-2 text-primary-500"><Droplets className="h-4 w-4 text-sky-500" /><span className="text-xs font-medium uppercase">Irrigation</span></div>
               {data.irrigation?.days_until_next !== null && data.irrigation?.days_until_next !== undefined ? (
                 <p className="mt-2 text-2xl font-semibold text-primary-900">
                   {data.irrigation.days_until_next <= 0 ? "Due now" : `In ${data.irrigation.days_until_next}d`}
@@ -185,14 +247,38 @@ export default function DashboardPage() {
               <p className="mt-1 text-xs text-primary-500">{data.irrigation?.note}</p>
             </div>
 
+            {/* Expenses Summary */}
             <div className="card">
-              <div className="flex items-center gap-2 text-primary-500"><Wallet className="h-4 w-4" /><span className="text-xs font-medium uppercase">Season Expenses</span></div>
+              <div className="flex items-center gap-2 text-primary-500"><Wallet className="h-4 w-4 text-emerald-500" /><span className="text-xs font-medium uppercase">Season Expenses</span></div>
               <p className="mt-2 text-2xl font-semibold text-primary-900">{formatCurrencyINR(data.expenses?.total ?? 0)}</p>
               <p className="mt-1 text-xs text-primary-500">{Object.keys(data.expenses?.by_category || {}).length} categories logged</p>
+              <Link href="/analytics" className="mt-3 inline-block text-xs font-medium text-primary-700 hover:underline">
+                View financial analytics →
+              </Link>
             </div>
 
+            {/* Saved Crop Plans Notification Card */}
+            {data.saved_plans_count !== undefined && data.saved_plans_count > 0 && (
+              <div className="card bg-sky-50/50 border-sky-200">
+                <div className="flex items-center gap-2 text-sky-800">
+                  <Compass className="h-4 w-4 text-sky-600" />
+                  <span className="text-xs font-medium uppercase">Crop Planner</span>
+                </div>
+                <p className="mt-2 text-xl font-bold text-sky-950">
+                  {data.saved_plans_count} Saved Plan{data.saved_plans_count > 1 ? "s" : ""} Ready
+                </p>
+                <p className="mt-1 text-xs text-sky-800">
+                  You have saved crop plans for this farm. Convert a plan into an active crop when ready to sow.
+                </p>
+                <Link href="/crop-planner" className="mt-3 inline-block text-xs font-bold text-sky-700 hover:underline">
+                  Go to Crop Planner →
+                </Link>
+              </div>
+            )}
+
+            {/* Today's Tasks */}
             <div className="card sm:col-span-2">
-              <div className="flex items-center gap-2 text-primary-500"><CheckSquare className="h-4 w-4" /><span className="text-xs font-medium uppercase">Today's Tasks</span></div>
+              <div className="flex items-center gap-2 text-primary-500"><CheckSquare className="h-4 w-4 text-primary-600" /><span className="text-xs font-medium uppercase">Today's Tasks</span></div>
               {data.todays_tasks.length === 0 ? (
                 <p className="mt-2 text-sm text-primary-500">No tasks scheduled for today.</p>
               ) : (
@@ -207,8 +293,9 @@ export default function DashboardPage() {
               )}
             </div>
 
+            {/* Alerts */}
             <div className="card">
-              <div className="flex items-center gap-2 text-primary-500"><AlertTriangle className="h-4 w-4" /><span className="text-xs font-medium uppercase">Alerts</span></div>
+              <div className="flex items-center gap-2 text-primary-500"><AlertTriangle className="h-4 w-4 text-amber-500" /><span className="text-xs font-medium uppercase">Alerts</span></div>
               {data.alerts.length === 0 ? (
                 <p className="mt-2 text-sm text-primary-500">No active alerts.</p>
               ) : (

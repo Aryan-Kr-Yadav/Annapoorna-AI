@@ -34,7 +34,7 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
         "type": "function",
         "function": {
             "name": "get_weather_advisory",
-            "description": "Get real-time weather from Open-Meteo and KrishiMitra agronomic rules advisory (irrigation delay if rain expected, spraying safety, heat stress, disease risk) for a farm.",
+            "description": "Get real-time weather from Open-Meteo and Annapoorna agronomic rules advisory (irrigation delay if rain expected, spraying safety, heat stress, disease risk) for a farm.",
             "parameters": {
                 "type": "object",
                 "properties": {"farm_id": {"type": "string", "description": "UUID of the farm"}},

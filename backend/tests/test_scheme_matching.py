@@ -1,5 +1,5 @@
 """
-Comprehensive unit tests for KrishiMitra Government Scheme Matching Engine.
+Comprehensive unit tests for Annapoorna AI Government Scheme Matching Engine.
 Covers all 15 test requirements specified in Section 28 of the Navigator Specification.
 """
 from datetime import date, timedelta

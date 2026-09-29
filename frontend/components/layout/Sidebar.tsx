@@ -21,7 +21,7 @@ import { useAuth } from "@/lib/auth-context";
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/farms", label: "My Farms", icon: Tractor },
-  { href: "/assistant", label: "KrishiMitra AI", icon: MessageCircle },
+  { href: "/assistant", label: "Annapoorna AI", icon: MessageCircle },
   { href: "/crop-doctor", label: "Crop Doctor", icon: Stethoscope },
   { href: "/weather", label: "Weather", icon: CloudSun },
   { href: "/schemes", label: "Schemes", icon: Landmark },
@@ -38,7 +38,7 @@ export function Sidebar() {
     <aside className="hidden w-60 shrink-0 flex-col border-r border-primary-100 bg-white md:flex">
       <div className="flex items-center gap-2 px-5 py-5">
         <Sprout className="h-6 w-6 text-primary-600" />
-        <span className="text-lg font-semibold text-primary-900">KrishiMitra</span>
+        <span className="text-lg font-semibold text-primary-900">Annapoorna AI</span>
       </div>
 
       <nav className="flex-1 space-y-1 px-3">

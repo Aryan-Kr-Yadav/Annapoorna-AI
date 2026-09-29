@@ -201,7 +201,7 @@ async def explain_scheme(
     user_query = payload.question or "Please explain the benefits, eligibility requirements, and how to apply in simple words."
 
     system_prompt = (
-        "You are KrishiMitra's Government Scheme Explainer for Indian farmers.\n"
+        "You are Annapoorna AI's Government Scheme Explainer for Indian farmers.\n"
         f"Explain this verified official government scheme in {lang_label}.\n\n"
         "CRITICAL RULES:\n"
         "1. Rely ONLY on the VERIFIED SCHEME DATA provided below.\n"

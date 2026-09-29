@@ -16,6 +16,7 @@ from app.models.diagnosis import Diagnosis
 from app.models.expense import Expense
 from app.models.harvest import Harvest
 from app.models.irrigation import IrrigationLog
+from app.models.sale import CropSale
 
 
 def expense_summary(db: Session, crop_cycle_id: UUID) -> dict:
@@ -31,11 +32,15 @@ def expense_summary(db: Session, crop_cycle_id: UUID) -> dict:
 def profit_summary(db: Session, crop_cycle_id: UUID) -> dict:
     total_expenses = expense_summary(db, crop_cycle_id)["total"]
     harvests = db.query(Harvest).filter(Harvest.crop_cycle_id == crop_cycle_id).all()
+    sales = db.query(CropSale).filter(CropSale.crop_cycle_id == crop_cycle_id).all()
 
-    total_revenue = sum(float(h.revenue) for h in harvests if h.revenue is not None)
+    total_sales_revenue = sum(float(s.total_sale_value) for s in sales)
+    total_harvest_revenue = sum(float(h.revenue) for h in harvests if h.revenue is not None)
+
+    total_revenue = total_sales_revenue if sales else (total_harvest_revenue if harvests else None)
     total_yield = sum(float(h.yield_quantity) for h in harvests)
 
-    profit = total_revenue - total_expenses if harvests else None
+    profit = total_revenue - total_expenses if total_revenue is not None else None
     roi = None
     cost_per_unit = None
     if total_expenses > 0:
@@ -46,7 +51,7 @@ def profit_summary(db: Session, crop_cycle_id: UUID) -> dict:
 
     return {
         "total_expenses": total_expenses,
-        "total_revenue": total_revenue if harvests else None,
+        "total_revenue": total_revenue,
         "total_yield": total_yield if harvests else None,
         "profit": profit,
         "roi_percentage": roi,
@@ -71,10 +76,12 @@ def season_report(db: Session, crop_cycle: CropCycle) -> dict:
 
     return {
         "crop_cycle": {
+            "id": str(crop_cycle.id),
             "crop_name": crop_cycle.crop_name,
             "season": crop_cycle.season.value,
             "year": crop_cycle.year,
             "sowing_date": crop_cycle.sowing_date.isoformat(),
+            "status": crop_cycle.status.value,
         },
         "duration_days": duration_days,
         "total_expenses": expenses["total"],

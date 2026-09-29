@@ -166,7 +166,7 @@ export function FloatingAssistant() {
       <button
         onClick={() => setOpen(true)}
         className="fixed bottom-20 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-lg transition hover:bg-primary-700 md:bottom-6"
-        aria-label="Open KrishiMitra AI assistant"
+        aria-label="Open Annapoorna AI assistant"
       >
         <MessageCircle className="h-6 w-6" />
       </button>
@@ -177,7 +177,7 @@ export function FloatingAssistant() {
     <div className="fixed inset-0 z-40 flex flex-col bg-white sm:inset-auto sm:bottom-6 sm:right-5 sm:h-[560px] sm:w-96 sm:rounded-xl sm:border sm:border-primary-100 sm:shadow-2xl">
       <div className="flex items-center justify-between border-b border-primary-100 px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-primary-900">KrishiMitra AI</p>
+          <p className="text-sm font-semibold text-primary-900">Annapoorna AI</p>
           {selectedFarm && <p className="text-xs text-primary-500">{selectedFarm.name}</p>}
         </div>
         <button onClick={() => setOpen(false)} className="rounded-md p-1 text-primary-500 hover:bg-primary-50">

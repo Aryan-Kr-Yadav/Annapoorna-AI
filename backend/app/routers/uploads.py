@@ -17,7 +17,7 @@ from app.core.storage import storage
 from app.models.user import User
 from app.schemas.common import Envelope
 
-logger = logging.getLogger("krishimitra.uploads")
+logger = logging.getLogger("annapoorna.uploads")
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 

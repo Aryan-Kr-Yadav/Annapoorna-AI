@@ -30,7 +30,7 @@ export default function SignInPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2 text-primary-800">
           <Sprout className="h-6 w-6" />
-          <span className="text-lg font-semibold">KrishiMitra AI</span>
+          <span className="text-lg font-semibold">Annapoorna AI</span>
         </div>
         <form onSubmit={onSubmit} className="card space-y-4">
           <h1 className="text-lg font-semibold text-primary-900">Log in</h1>
@@ -40,7 +40,12 @@ export default function SignInPage() {
             <input required type="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div>
-            <label className="label">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="label">Password</label>
+              <Link href="/forgot-password" className="text-xs text-primary-600 hover:text-primary-800 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
             <input required type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
           <button disabled={submitting} className="btn-primary w-full">{submitting ? "Signing in..." : "Log in"}</button>

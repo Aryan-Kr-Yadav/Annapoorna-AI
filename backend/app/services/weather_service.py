@@ -53,6 +53,101 @@ def _wmo_description(code: Optional[int]) -> str:
     return WMO_CODE_MAP.get(code, "Partly cloudy")
 
 
+def compute_weather_intelligence(data: dict) -> dict:
+    if not data or not data.get("available"):
+        return {}
+
+    current = data.get("current", {})
+    daily = data.get("daily_forecast", [])
+    today = daily[0] if len(daily) > 0 else {}
+    tomorrow = daily[1] if len(daily) > 1 else {}
+
+    temp = current.get("temperature_c") or 25
+    humidity = current.get("humidity_percent") or 50
+    wind = current.get("wind_speed_kmh") or 10
+    pop_tomorrow = tomorrow.get("rain_probability_percent", 0)
+
+    # 1. Farming Condition Score
+    if (temp and temp >= 38) or (wind and wind >= 25) or pop_tomorrow >= 65:
+        score = "CAUTION"
+        reasons = []
+        if temp and temp >= 38: reasons.append(f"high temperature ({temp:.0f}°C)")
+        if wind and wind >= 25: reasons.append(f"strong winds ({wind:.0f} km/h)")
+        if pop_tomorrow >= 65: reasons.append(f"high rain probability tomorrow ({pop_tomorrow}%)")
+        score_desc = f"Caution advised today due to {', '.join(reasons)}."
+    elif (temp and temp >= 33) or (humidity and humidity >= 75) or pop_tomorrow >= 35:
+        score = "MODERATE"
+        reasons = []
+        if humidity and humidity >= 75: reasons.append(f"high humidity ({humidity}%)")
+        if pop_tomorrow >= 35: reasons.append(f"moderate rain chance tomorrow ({pop_tomorrow}%)")
+        score_desc = f"Moderate farming conditions today ({', '.join(reasons) if reasons else 'mild weather changes'})."
+    else:
+        score = "GOOD"
+        score_desc = "Favorable farming conditions today with mild temperature and manageable wind."
+
+    # 2. Rain & Irrigation Advisory
+    if pop_tomorrow >= 60:
+        rain_advisory = f"High probability of rain tomorrow ({pop_tomorrow}% chance). Consider postponing irrigation to prevent waterlogging and conserve water."
+    elif pop_tomorrow >= 35:
+        rain_advisory = f"Moderate rain chance tomorrow ({pop_tomorrow}%). Monitor soil moisture before scheduling irrigation."
+    else:
+        rain_advisory = "Dry weather expected over the next 24-48 hours. Proceed with normal irrigation schedule if soil moisture is low."
+
+    # 3. Disease Risk Weather Signal
+    if humidity and humidity >= 80 and temp and 20 <= temp <= 32:
+        disease_risk = "HIGH"
+        disease_desc = f"High humidity ({humidity}%) combined with warm temperature ({temp:.0f}°C) creates favorable conditions for fungal and bacterial pathogens."
+    elif humidity and humidity >= 65:
+        disease_risk = "MODERATE"
+        disease_desc = f"Moderate humidity ({humidity}%). Regularly inspect crop foliage for early signs of infection."
+    else:
+        disease_risk = "LOW"
+        disease_desc = "Low humidity and dry air minimize foliar disease transmission risk today."
+
+    # 4. Spraying Conditions
+    if wind and wind >= 22:
+        spray_cond = "AVOID"
+        spray_desc = f"Avoid foliar spraying today — wind speed is {wind:.0f} km/h, which will cause spray drift."
+    elif pop_tomorrow >= 60:
+        spray_cond = "AVOID"
+        spray_desc = "Avoid spraying this afternoon — rain is expected tomorrow which will wash away applied chemicals."
+    elif wind and wind >= 15:
+        spray_cond = "CAUTION"
+        spray_desc = f"Caution while spraying — moderate wind ({wind:.0f} km/h). Spray early morning when wind is lowest."
+    else:
+        spray_cond = "GOOD"
+        spray_desc = "Good spraying conditions — low wind speeds and minimal rain risk."
+
+    # 5. Stress Warnings
+    stress_warning = None
+    if temp and temp >= 36:
+        stress_warning = f"Heat Stress Alert: Current temperature of {temp:.0f}°C causes rapid evapotranspiration and crop heat stress."
+    elif temp and temp <= 10:
+        stress_warning = f"Cold Stress Alert: Low temperature of {temp:.0f}°C may slow crop metabolic growth."
+
+    # 6. Best Farming Window
+    best_window = "6:00 AM – 10:00 AM (Optimal temperature & lower wind speed)"
+
+    # 7. Timeline
+    timeline = [
+        {"day": "Today", "summary": f"{current.get('condition', 'Clear')}, {temp:.0f}°C", "action": "Favorable for routine farm tasks."},
+        {"day": "Tomorrow", "summary": f"{tomorrow.get('condition', 'Clear')}, Rain chance: {pop_tomorrow}%", "action": "Review irrigation plan before rain." if pop_tomorrow >= 40 else "Normal field operations."},
+    ]
+
+    return {
+        "farming_condition_score": score,
+        "score_description": score_desc,
+        "rain_advisory": rain_advisory,
+        "disease_risk": disease_risk,
+        "disease_description": disease_desc,
+        "spraying_condition": spray_cond,
+        "spraying_description": spray_desc,
+        "stress_warning": stress_warning,
+        "best_farming_window": best_window,
+        "timeline": timeline,
+    }
+
+
 class WeatherService:
     BASE_URL = "https://api.open-meteo.com/v1/forecast"
     GEO_URL = "https://geocoding-api.open-meteo.com/v1/search"
@@ -156,7 +251,7 @@ class WeatherService:
         wind_kmh = current.get("wind_speed_10m")
         wind_ms = round(wind_kmh / 3.6, 1) if wind_kmh is not None else None
 
-        return {
+        result = {
             "available": True,
             "fetched_at": datetime.now(timezone.utc).isoformat(),
             "location": {
@@ -200,6 +295,9 @@ class WeatherService:
 
             "daily_forecast": daily_forecast,
         }
+
+        result["weather_intelligence"] = compute_weather_intelligence(result)
+        return result
 
     async def geocode(self, district: str, state: str) -> Optional[tuple[float, float]]:
         """Geocodes a district and state to (latitude, longitude) using Open-Meteo Geocoding API."""

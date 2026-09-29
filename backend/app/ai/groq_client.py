@@ -60,7 +60,7 @@ async def chat_completion(
 
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "User-Agent": "KrishiMitra-AI/2.0",
+        "User-Agent": "Annapoorna-AI/2.0",
     }
 
     try:
@@ -106,7 +106,7 @@ async def vision_completion(prompt: str, image_url: str, model: Optional[str] = 
 
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "User-Agent": "KrishiMitra-AI/2.0",
+        "User-Agent": "Annapoorna-AI/2.0",
     }
 
     try:
@@ -144,7 +144,7 @@ async def create_embedding(text: str) -> Optional[list[float]]:
 
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "User-Agent": "KrishiMitra-AI/2.0",
+        "User-Agent": "Annapoorna-AI/2.0",
     }
     try:
         async with httpx.AsyncClient(timeout=20) as client:

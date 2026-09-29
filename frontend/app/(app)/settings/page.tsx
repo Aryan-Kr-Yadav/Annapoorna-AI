@@ -34,7 +34,7 @@ export default function SettingsPage() {
           <option value="hi">हिन्दी (Hindi)</option>
         </select>
         <p className="text-xs text-primary-500">
-          KrishiMitra AI also understands Hinglish naturally in chat, regardless of this setting.
+          Annapoorna AI also understands Hinglish naturally in chat, regardless of this setting.
         </p>
         <button onClick={save} disabled={saving} className="btn-primary">{saving ? "Saving..." : "Save"}</button>
         {saved && <p className="text-sm text-primary-600">Saved.</p>}

@@ -36,7 +36,7 @@ export interface CropCycle {
   sowing_date: string;
   expected_harvest_date: string | null;
   actual_harvest_date: string | null;
-  status: "planned" | "active" | "harvested" | "archived";
+  status: "planned" | "active" | "harvested" | "sold" | "archived";
 }
 
 export interface LifecycleStage {
@@ -73,6 +73,15 @@ export interface CropTask {
 export interface DashboardData {
   farm: { id: string; name: string };
   weather: any;
+  weather_intelligence?: {
+    farming_condition_score: number;
+    rain_advisory: string;
+    disease_risk: string;
+    spraying_condition: string;
+    stress_warning: string | null;
+    best_farming_window: string;
+    timeline: any[];
+  } | null;
   active_crop: {
     crop_cycle_id: string;
     crop_name: string;
@@ -85,6 +94,8 @@ export interface DashboardData {
   irrigation: { estimated_next_date?: string; days_until_next: number | null; note: string } | null;
   expenses: { total: number; by_category: Record<string, number> } | null;
   alerts: { type: string; priority: string; title: string; message: string }[];
+  unsold_harvests?: { crop_cycle_id: string; crop_name: string; remaining_quantity: number; unit: string }[];
+  saved_plans_count?: number;
 }
 
 export interface ChatSessionT {

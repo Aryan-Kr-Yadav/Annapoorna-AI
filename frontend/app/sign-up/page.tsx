@@ -35,7 +35,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-sm">
         <div className="mb-6 flex items-center justify-center gap-2 text-primary-800">
           <Sprout className="h-6 w-6" />
-          <span className="text-lg font-semibold">KrishiMitra AI</span>
+          <span className="text-lg font-semibold">Annapoorna AI</span>
         </div>
         <form onSubmit={onSubmit} className="card space-y-4">
           <h1 className="text-lg font-semibold text-primary-900">Create your account</h1>

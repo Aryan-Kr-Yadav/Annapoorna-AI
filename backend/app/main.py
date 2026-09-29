@@ -28,11 +28,11 @@ from app.routers import (
 )
 
 settings = get_settings()
-logger = logging.getLogger("krishimitra")
+logger = logging.getLogger("annapoorna")
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
-    title="KrishiMitra AI 2.0",
+    title="Annapoorna AI 2.0",
     description="Intelligent Farm Management & Decision-Support Platform API",
     version="2.0.0",
 )
@@ -40,6 +40,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,7 +61,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.get("/")
 def root():
-    return {"name": "KrishiMitra AI 2.0 API", "status": "running", "docs": "/docs"}
+    return {"name": "Annapoorna AI 2.0 API", "status": "running", "docs": "/docs"}
 
 
 @app.get(f"{settings.API_V1_PREFIX}/health-check")

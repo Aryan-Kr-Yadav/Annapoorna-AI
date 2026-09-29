@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # --- Database ---
     DATABASE_URL: str = Field(
-        default="postgresql+psycopg://postgres:postgres@localhost:5432/krishimitra"
+        default="postgresql+psycopg://postgres:postgres@localhost:5432/annapoorna"
     )
     DATABASE_URL_UNPOOLED: Optional[str] = None
 
@@ -64,7 +64,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> List[str]:
-        return [o.strip() for o in self.FRONTEND_URL.split(",") if o.strip()]
+        origins = [o.strip() for o in self.FRONTEND_URL.split(',') if o.strip()]
+        for fb in ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8000', 'http://127.0.0.1:8000']:
+            if fb not in origins:
+                origins.append(fb)
+        return origins
 
 
 @lru_cache

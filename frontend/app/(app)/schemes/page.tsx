@@ -253,12 +253,12 @@ export default function SchemesPage() {
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" />
             <div className="space-y-1">
               <p className="font-semibold text-emerald-950">
-                How KrishiMitra Recommends Schemes
+                How Annapoorna AI Recommends Schemes
               </p>
               <p className="text-emerald-800">
                 Schemes are marked as <strong>Potential Match</strong> based on your farm&apos;s
                 state, active crops, and land size compared against verified government eligibility
-                criteria. <strong>KrishiMitra never claims 100% eligibility</strong>. Unverified
+                criteria. <strong>Annapoorna AI never claims 100% eligibility</strong>. Unverified
                 conditions (e.g. land ownership title, income exclusion, Aadhaar-DBT linkage) must
                 be confirmed directly on the official portal.
               </p>

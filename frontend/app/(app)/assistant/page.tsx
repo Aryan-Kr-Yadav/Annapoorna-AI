@@ -161,7 +161,7 @@ export default function AssistantPage() {
 
       <div className="flex flex-1 flex-col">
         <div className="border-b border-primary-100 pb-3">
-          <h1 className="text-lg font-semibold text-primary-900">KrishiMitra AI</h1>
+          <h1 className="text-lg font-semibold text-primary-900">Annapoorna AI</h1>
           {selectedFarm && <p className="text-xs text-primary-500">Context: {selectedFarm.name}</p>}
         </div>
 
@@ -224,7 +224,7 @@ export default function AssistantPage() {
                 sendMessage(input);
               }
             }}
-            placeholder="Ask KrishiMitra AI..."
+            placeholder="Ask Annapoorna AI..."
             className="input flex-1"
           />
           <button onClick={() => sendMessage(input)} disabled={sending} className="rounded-lg bg-primary-600 p-2 text-white disabled:opacity-50"><Send className="h-4 w-4" /></button>
