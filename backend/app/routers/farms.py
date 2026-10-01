@@ -41,6 +41,7 @@ def get_farm(farm_id: UUID, user: User = Depends(get_current_user), db: Session 
 
 
 @router.put("/{farm_id}", response_model=Envelope[FarmOut])
+@router.patch("/{farm_id}", response_model=Envelope[FarmOut])
 def update_farm(
     farm_id: UUID, payload: FarmUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):

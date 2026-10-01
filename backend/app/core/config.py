@@ -39,8 +39,18 @@ class Settings(BaseSettings):
     # --- AI (Groq / OpenAI-compatible) ---
     GROQ_API_KEY: Optional[str] = None
     GROQ_API_BASE: str = "https://api.groq.com/openai/v1"
-    GROQ_CHAT_MODEL: str = "qwen/qwen3.8-27b"
+    GROQ_CHAT_MODEL: str = "openai/gpt-oss-120b"
+    GROQ_TEXT_MODEL: Optional[str] = None
     GROQ_VISION_MODEL: str = "qwen/qwen3.8-27b"
+    GROQ_FALLBACK_TEXT_MODEL: str = "openai/gpt-oss-20b"
+
+    @property
+    def text_model(self) -> str:
+        return self.GROQ_TEXT_MODEL or self.GROQ_CHAT_MODEL or "openai/gpt-oss-120b"
+
+    @property
+    def vision_model(self) -> str:
+        return self.GROQ_VISION_MODEL or "qwen/qwen3.8-27b"
 
     # --- Weather ---
     WEATHER_API_KEY: Optional[str] = None

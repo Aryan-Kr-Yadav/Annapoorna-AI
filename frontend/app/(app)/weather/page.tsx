@@ -18,9 +18,11 @@ import {
   Sprout,
   Tractor,
 } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 export default function WeatherPage() {
   const api = useApi();
+  const { t } = useTranslation();
   const { selectedFarm, selectedCrop } = useFarms();
   const [weather, setWeather] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function WeatherPage() {
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-primary-100 pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary-950">
-            Weather Intelligence
+            {t("weather.title")}
           </h1>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs sm:text-sm text-primary-600">
             <span className="flex items-center gap-1 font-semibold text-primary-800">

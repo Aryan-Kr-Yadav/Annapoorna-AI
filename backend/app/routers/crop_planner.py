@@ -18,6 +18,9 @@ from app.schemas.crop import CropCycleOut
 from app.schemas.crop_plan import CropPlanConvertRequest, CropPlanOut, CropPlanSaveRequest
 from app.services.ownership import get_owned_farm
 
+from app.ai.service import ai_service, AIConfigError, AIResponseError
+from pydantic import Field
+
 router = APIRouter(prefix="/crop-planner", tags=["crop-planner"])
 
 
@@ -26,11 +29,102 @@ class CropSuggestionRequest(BaseModel):
     season: str  # kharif | rabi | zaid
 
 
+class AICropPlanningRequest(BaseModel):
+    farm_id: UUID
+    season: str  # kharif | rabi | zaid
+    previous_crop: Optional[str] = None
+    farmer_preferences: Optional[str] = None
+
+
+class RecommendedCropOption(BaseModel):
+    crop_name: str
+    variety: str = "Recommended local variety"
+    suitability: str = "high"  # high | medium | low
+    reasoning: list[str] = Field(default_factory=list)
+    sowing_window: str = "Season standard"
+    expected_duration_days: int = 120
+    key_tasks: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    estimated_yield_per_acre: Optional[str] = None
+
+
+class AICropPlanningResponse(BaseModel):
+    season: str
+    farm_name: str
+    recommended_crops: list[RecommendedCropOption]
+    agronomic_notes: str = ""
+
+
 @router.post("/suggest", response_model=Envelope[list[dict]])
 def suggest(payload: CropSuggestionRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     farm = get_owned_farm(db, payload.farm_id, user.id)
     suggestions = suggest_crops(payload.season, farm.soil_type, farm.irrigation_type.value)
     return Envelope(data=suggestions)
+
+
+@router.post("/ai-recommend", response_model=Envelope[AICropPlanningResponse])
+async def ai_recommend(
+    payload: AICropPlanningRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    farm = get_owned_farm(db, payload.farm_id, user.id)
+    deterministic_suggestions = suggest_crops(payload.season, farm.soil_type, farm.irrigation_type.value)
+
+    prompt = (
+        f"You are the Annapoorna AI Agricultural Crop Planning Specialist.\n\n"
+        f"FARM & ENVIRONMENTAL CONTEXT:\n"
+        f"- Farm Name: {farm.name}\n"
+        f"- Location: {farm.district}, {farm.state}\n"
+        f"- Land Area: {farm.area} {farm.area_unit.value}\n"
+        f"- Soil Type: {farm.soil_type or 'Loamy'}\n"
+        f"- Irrigation Available: {farm.irrigation_type.value}\n"
+        f"- Target Season: {payload.season.upper()}\n"
+        f"- Previous Crop on this land: {payload.previous_crop or 'None recorded'}\n"
+        f"- Farmer Preferences: {payload.farmer_preferences or 'Standard commercial or staple crops'}\n\n"
+        f"BASELINE SUITABLE CROPS (from deterministic agronomic rules):\n"
+        f"{', '.join(s['crop'].title() for s in deterministic_suggestions)}\n\n"
+        f"TASK:\n"
+        f"Recommend 2 to 3 optimal crops for this farm and season. For each crop include variety, suitability, "
+        f"sowing window, key cultivation tasks, agronomic risks, and expected duration.\n"
+        f"Respond ONLY with valid JSON matching the AICropPlanningResponse schema."
+    )
+
+    try:
+        recommendation = await ai_service.generate_structured(
+            schema=AICropPlanningResponse,
+            prompt=prompt,
+            reasoning_effort="high",
+        )
+        return Envelope(
+            message="Crop planning recommendations generated successfully.",
+            data=recommendation,
+        )
+    except Exception as exc:
+        # Graceful fallback to deterministic agronomic suggestions
+        fallback_crops = [
+            RecommendedCropOption(
+                crop_name=s["crop"].title(),
+                variety="Locally adapted certified seed",
+                suitability="high" if s.get("soil_compatible") else "medium",
+                reasoning=[s.get("reasoning", "Compatible with season and soil conditions.")],
+                sowing_window=f"{payload.season.title()} standard sowing window",
+                expected_duration_days=120,
+                key_tasks=["Land preparation & basal fertilizer", "Timely irrigation", "Weed control"],
+                risks=["Unseasonal rain during flowering", "Pest incidence"],
+            )
+            for s in deterministic_suggestions[:3]
+        ]
+        fallback_resp = AICropPlanningResponse(
+            season=payload.season,
+            farm_name=farm.name,
+            recommended_crops=fallback_crops,
+            agronomic_notes="Generated using deterministic agronomic suitability tables.",
+        )
+        return Envelope(
+            message="Crop recommendations generated using baseline agronomic rules.",
+            data=fallback_resp,
+        )
 
 
 @router.post("/plans", response_model=Envelope[CropPlanOut])

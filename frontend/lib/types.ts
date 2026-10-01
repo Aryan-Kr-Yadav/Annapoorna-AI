@@ -106,7 +106,7 @@ export interface DashboardData {
     severity: string;
     confidence: number | null;
   }[];
-  todays_tasks: { id: string; title: string; task_type: string }[];
+  todays_tasks: { id: string; title: string; task_type: string; is_completed?: boolean }[];
   irrigation: { estimated_next_date?: string; days_until_next: number | null; note: string } | null;
   expenses: { total: number; by_category: Record<string, number> } | null;
   alerts: { type: string; priority: string; title: string; message: string }[];
@@ -220,6 +220,7 @@ export interface Diagnosis {
 }
 
 export interface UserPreferences {
+  theme?: "light" | "dark" | "system";
   ui_language?: "en" | "hi";
   assistant_language?: "auto" | "en" | "hi" | "hinglish";
   assistant_style?: "concise" | "balanced" | "detailed";

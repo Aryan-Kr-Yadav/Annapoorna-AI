@@ -49,6 +49,28 @@ def list_tasks(
     return Envelope(data=[CropTaskOut.model_validate(t) for t in tasks])
 
 
+@router.get("/farms/{farm_id}/tasks", response_model=Envelope[list[CropTaskOut]])
+def list_farm_tasks(
+    farm_id: UUID,
+    status: Optional[TaskStatus] = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.models.crop import CropCycle
+    from app.services.ownership import get_owned_farm
+
+    farm = get_owned_farm(db, farm_id, user.id)
+    query = (
+        db.query(CropTask)
+        .join(CropCycle, CropTask.crop_cycle_id == CropCycle.id)
+        .filter(CropCycle.farm_id == farm.id)
+    )
+    if status:
+        query = query.filter(CropTask.status == status)
+    tasks = query.order_by(CropTask.scheduled_date.asc()).all()
+    return Envelope(data=[CropTaskOut.model_validate(t) for t in tasks])
+
+
 @router.put("/tasks/{task_id}", response_model=Envelope[CropTaskOut])
 def update_task(
     task_id: UUID, payload: CropTaskUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)

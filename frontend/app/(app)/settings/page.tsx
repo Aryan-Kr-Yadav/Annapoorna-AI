@@ -5,6 +5,7 @@ import { useApi } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { useFarms } from "@/lib/farm-context";
 import { useTranslation } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme-context";
 import {
   Globe,
   Tractor,
@@ -16,6 +17,9 @@ import {
   LogOut,
   Sparkles,
   KeyRound,
+  Sun,
+  Moon,
+  Monitor,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { UserProfile, UserPreferences } from "@/lib/types";
@@ -27,6 +31,7 @@ export default function SettingsPage() {
   const { user: authUser, logout } = useAuth();
   const { farms, refresh: refreshFarms } = useFarms();
   const { language, setLanguage, t } = useTranslation();
+  const { theme, setTheme } = useTheme();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -221,6 +226,39 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-4 max-w-lg">
+            {/* Appearance Mode */}
+            <div>
+              <label className="label">{t("settings.appearance", "Appearance")}</label>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { id: "light" as const, label: t("settings.theme_light", "Light"), icon: Sun },
+                  { id: "dark" as const, label: t("settings.theme_dark", "Dark"), icon: Moon },
+                  { id: "system" as const, label: t("settings.theme_system", "System"), icon: Monitor },
+                ].map((item) => {
+                  const isSelected = theme === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => setTheme(item.id)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-2 rounded-xl border p-3.5 text-xs font-semibold transition",
+                        isSelected
+                          ? "border-primary-600 bg-primary-50 text-primary-950 dark:bg-primary-900/40 dark:text-primary-100 ring-2 ring-primary-500/20"
+                          : "border-primary-200/80 bg-white dark:bg-primary-950/20 text-primary-600 dark:text-primary-300 hover:border-primary-300 hover:bg-primary-50/50"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-primary-500">
+                Choose Light, Dark, or System to follow your device/browser theme preference.
+              </p>
+            </div>
+
             <div>
               <label className="label">Preferred UI Language</label>
               <select

@@ -206,6 +206,30 @@ TOOL_DEFINITIONS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_harvest_summary",
+            "description": "Get total harvested produce yield and records for a crop cycle.",
+            "parameters": {
+                "type": "object",
+                "properties": {"crop_cycle_id": {"type": "string"}},
+                "required": ["crop_cycle_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_sale_summary",
+            "description": "Get produce sales, total revenue, average price, and unsold inventory for a crop cycle.",
+            "parameters": {
+                "type": "object",
+                "properties": {"crop_cycle_id": {"type": "string"}},
+                "required": ["crop_cycle_id"],
+            },
+        },
+    },
 ]
 
 
@@ -475,6 +499,67 @@ async def execute_tool(db: Session, user: User, tool_name: str, args: dict) -> d
             return {"error": "Invalid or missing crop_cycle_id. Please ask the user for a crop cycle ID."}
         crop = get_owned_crop_cycle(db, crop_id, user.id)
         return analytics_service.profit_summary(db, crop.id)
+
+    if tool_name == "get_harvest_summary":
+        crop_id = _parse_uuid(args.get("crop_cycle_id"))
+        if not crop_id:
+            return {"error": "Invalid or missing crop_cycle_id. Please ask the user for a crop cycle ID."}
+        crop = get_owned_crop_cycle(db, crop_id, user.id)
+        from app.models.harvest import Harvest
+        harvests = db.query(Harvest).filter(Harvest.crop_cycle_id == crop.id).order_by(Harvest.harvest_date.desc()).all()
+        total_quantity = sum(float(h.yield_quantity) for h in harvests)
+        unit = harvests[0].yield_unit if harvests else "quintals"
+        return {
+            "crop_name": crop.crop_name,
+            "total_harvested_quantity": round(total_quantity, 2),
+            "unit": unit,
+            "harvest_count": len(harvests),
+            "recent_harvests": [
+                {
+                    "date": h.harvest_date.isoformat(),
+                    "quantity": float(h.yield_quantity),
+                    "quality_grade": h.quality_grade,
+                    "storage_location": h.storage_location,
+                }
+                for h in harvests[:5]
+            ],
+        }
+
+    if tool_name == "get_sale_summary":
+        crop_id = _parse_uuid(args.get("crop_cycle_id"))
+        if not crop_id:
+            return {"error": "Invalid or missing crop_cycle_id. Please ask the user for a crop cycle ID."}
+        crop = get_owned_crop_cycle(db, crop_id, user.id)
+        from app.models.harvest import Harvest
+        from app.models.sale import CropSale
+        harvests = db.query(Harvest).filter(Harvest.crop_cycle_id == crop.id).all()
+        sales = db.query(CropSale).filter(CropSale.crop_cycle_id == crop.id).order_by(CropSale.sale_date.desc()).all()
+        total_harvested = sum(float(h.yield_quantity) for h in harvests)
+        total_sold = sum(float(s.quantity_sold) for s in sales)
+        total_revenue = sum(float(s.total_sale_value) for s in sales)
+        unit = harvests[0].yield_unit if harvests else (sales[0].unit if sales else "quintals")
+        remaining_stock = max(0.0, total_harvested - total_sold)
+        avg_price = (total_revenue / total_sold) if total_sold > 0 else 0.0
+        return {
+            "crop_name": crop.crop_name,
+            "total_sold_quantity": round(total_sold, 2),
+            "total_revenue": round(total_revenue, 2),
+            "average_price_per_unit": round(avg_price, 2),
+            "remaining_unsold_stock": round(remaining_stock, 2),
+            "unit": unit,
+            "sale_count": len(sales),
+            "recent_sales": [
+                {
+                    "date": s.sale_date.isoformat(),
+                    "quantity": float(s.quantity_sold),
+                    "price_per_unit": float(s.price_per_unit),
+                    "total_value": float(s.total_sale_value),
+                    "buyer_type": s.buyer_type,
+                    "market_location": s.market_location,
+                }
+                for s in sales[:5]
+            ],
+        }
 
     if tool_name == "get_market_prices":
         crop_name = args.get("crop", "")

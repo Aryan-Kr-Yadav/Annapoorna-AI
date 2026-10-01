@@ -64,11 +64,11 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
             setFarmOpen((v) => !v);
             setCropOpen(false);
           }}
-          className="flex items-center gap-1.5 rounded-lg border border-primary-200 bg-white px-2.5 py-1.5 text-xs sm:text-sm font-medium text-primary-800 shadow-sm hover:border-primary-300 hover:bg-primary-50/50 transition"
+          className="flex items-center gap-1.5 rounded-lg border border-primary-200 dark:border-primary-800 bg-white dark:bg-[#161f14] px-2.5 py-1.5 text-xs sm:text-sm font-medium text-primary-800 dark:text-primary-200 shadow-sm hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50/50 dark:hover:bg-primary-900/40 transition"
           aria-expanded={farmOpen}
           aria-haspopup="listbox"
         >
-          <Tractor className="h-3.5 w-3.5 text-primary-600 shrink-0" />
+          <Tractor className="h-3.5 w-3.5 text-primary-600 dark:text-primary-400 shrink-0" />
           <span className="max-w-[130px] sm:max-w-[170px] truncate">
             {selectedFarm?.name || "Select Farm"}
           </span>
@@ -76,7 +76,7 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
         </button>
 
         {farmOpen && (
-          <div className="absolute left-0 z-50 mt-1 w-64 rounded-xl border border-primary-100 bg-white py-1.5 shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="absolute left-0 z-50 mt-1 w-64 rounded-xl border border-primary-100 dark:border-primary-800 bg-white dark:bg-[#161f14] py-1.5 shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
             <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary-400">
               Select Farm
             </div>
@@ -94,8 +94,8 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
                     className={cn(
                       "flex w-full items-start justify-between px-3 py-2 text-left text-xs sm:text-sm transition",
                       isSelected
-                        ? "bg-primary-50 font-semibold text-primary-900"
-                        : "text-primary-700 hover:bg-primary-50/80"
+                        ? "bg-primary-50 dark:bg-primary-900/40 font-semibold text-primary-900 dark:text-primary-100"
+                        : "text-primary-700 dark:text-primary-300 hover:bg-primary-50/80 dark:hover:bg-primary-900/20"
                     )}
                   >
                     <div className="min-w-0 pr-2">
@@ -113,11 +113,11 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
                 );
               })}
             </div>
-            <div className="border-t border-primary-100 mt-1 pt-1 px-2">
+            <div className="border-t border-primary-100 dark:border-primary-800 mt-1 pt-1 px-2">
               <Link
                 href="/farms"
                 onClick={() => setFarmOpen(false)}
-                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-primary-600 hover:bg-primary-50"
+                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40"
               >
                 <Plus className="h-3.5 w-3.5" /> Manage or Add Farm
               </Link>
@@ -138,14 +138,14 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
           className={cn(
             "flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs sm:text-sm font-medium shadow-sm transition",
             selectedCrop
-              ? "border-emerald-200 bg-emerald-50/50 text-emerald-900 hover:border-emerald-300 hover:bg-emerald-50"
-              : "border-primary-200 bg-white text-primary-700 hover:border-primary-300 hover:bg-primary-50/50",
+              ? "border-emerald-200 dark:border-emerald-800/80 bg-emerald-50/50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 hover:border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/60"
+              : "border-primary-200 dark:border-primary-800 bg-white dark:bg-[#161f14] text-primary-700 dark:text-primary-300 hover:border-primary-300 hover:bg-primary-50/50 dark:hover:bg-primary-900/40",
             !selectedFarm && "opacity-50 cursor-not-allowed"
           )}
           aria-expanded={cropOpen}
           aria-haspopup="listbox"
         >
-          <Sprout className={cn("h-3.5 w-3.5 shrink-0", selectedCrop ? "text-emerald-600" : "text-primary-600")} />
+          <Sprout className={cn("h-3.5 w-3.5 shrink-0", selectedCrop ? "text-emerald-600 dark:text-emerald-400" : "text-primary-600 dark:text-primary-400")} />
           <span className="max-w-[140px] sm:max-w-[190px] truncate">
             {loadingCrops
               ? "Loading crops..."
@@ -159,7 +159,7 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
         </button>
 
         {cropOpen && (
-          <div className="absolute left-0 sm:left-auto sm:right-0 z-50 mt-1 w-72 rounded-xl border border-primary-100 bg-white py-1.5 shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
+          <div className="absolute left-0 sm:left-auto sm:right-0 z-50 mt-1 w-72 rounded-xl border border-primary-100 dark:border-primary-800 bg-white dark:bg-[#161f14] py-1.5 shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
             <div className="px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-primary-400">
               Crops on {selectedFarm?.name}
             </div>
@@ -171,7 +171,7 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
                   <Link
                     href={`/farms/${selectedFarm?.id}`}
                     onClick={() => setCropOpen(false)}
-                    className="mt-2 inline-flex items-center gap-1 font-semibold text-primary-700 underline"
+                    className="mt-2 inline-flex items-center gap-1 font-semibold text-primary-700 dark:text-primary-300 underline"
                   >
                     <Plus className="h-3 w-3" /> Plant a crop
                   </Link>
@@ -191,8 +191,8 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
                       className={cn(
                         "flex w-full items-center justify-between px-3 py-2 text-left text-xs sm:text-sm transition",
                         isSelected
-                          ? "bg-emerald-50 font-semibold text-emerald-950"
-                          : "text-primary-800 hover:bg-primary-50"
+                          ? "bg-emerald-50 dark:bg-emerald-950/40 font-semibold text-emerald-950 dark:text-emerald-200"
+                          : "text-primary-800 dark:text-primary-200 hover:bg-primary-50 dark:hover:bg-primary-900/30"
                       )}
                     >
                       <div className="min-w-0 pr-2">
@@ -205,10 +205,10 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
                         className={cn(
                           "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize",
                           isActive
-                            ? "bg-emerald-100 text-emerald-800"
+                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
                             : c.status === "harvested" || c.status === "sold"
-                            ? "bg-sky-100 text-sky-800"
-                            : "bg-gray-100 text-gray-700"
+                            ? "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300"
+                            : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
                         )}
                       >
                         {c.status}
@@ -220,11 +220,11 @@ export function FarmCropSelector({ compact = false, className }: FarmCropSelecto
             </div>
 
             {selectedFarm && (
-              <div className="border-t border-primary-100 mt-1 pt-1 px-2">
+              <div className="border-t border-primary-100 dark:border-primary-800 mt-1 pt-1 px-2">
                 <Link
                   href={`/farms/${selectedFarm.id}`}
                   onClick={() => setCropOpen(false)}
-                  className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-primary-600 hover:bg-primary-50"
+                  className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/40"
                 >
                   <Plus className="h-3.5 w-3.5" /> Add / View Crops on Farm
                 </Link>

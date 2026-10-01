@@ -8,6 +8,7 @@ from datetime import date, timedelta
 from uuid import UUID
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -139,7 +140,15 @@ async def get_dashboard(
             )
             .all()
         )
-        result["todays_tasks"] = [{"id": str(t.id), "title": t.title, "task_type": t.task_type.value} for t in todays_tasks]
+        result["todays_tasks"] = [
+            {
+                "id": str(t.id),
+                "title": t.title,
+                "task_type": t.task_type.value if hasattr(t.task_type, "value") else str(t.task_type),
+                "is_completed": (t.status.value if hasattr(t.status, "value") else str(t.status)) == "completed",
+            }
+            for t in todays_tasks
+        ]
 
         last_irrigation = (
             db.query(IrrigationLog)
@@ -191,3 +200,136 @@ async def get_dashboard(
             result["alerts"].extend(alerts)
 
     return Envelope(data=result)
+
+
+class DailyBriefingOutput(BaseModel):
+    greeting: str = Field(description="Warm farmer greeting")
+    headline: str = Field(description="One-sentence daily summary headline")
+    action_items: list[str] = Field(default_factory=list, description="Immediate action items for today")
+    weather_summary: str = Field(description="Practical weather summary")
+    crop_advisory: str = Field(description="Stage-specific crop advisory")
+
+
+@router.get("/{farm_id}/briefing", response_model=Envelope[dict])
+async def get_daily_briefing(
+    farm_id: UUID,
+    crop_cycle_id: UUID | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from app.ai.service import ai_service
+    from app.models.diagnosis import Diagnosis
+
+    farm = get_owned_farm(db, farm_id, user.id)
+
+    # Resolve active crop
+    active_crop = None
+    if crop_cycle_id:
+        active_crop = (
+            db.query(CropCycle)
+            .filter(CropCycle.id == crop_cycle_id, CropCycle.farm_id == farm.id)
+            .first()
+        )
+    if not active_crop:
+        active_crop = (
+            db.query(CropCycle)
+            .filter(CropCycle.farm_id == farm.id, CropCycle.status == CropCycleStatus.ACTIVE)
+            .order_by(CropCycle.sowing_date.desc())
+            .first()
+        )
+
+    # 1. Deterministic inputs
+    weather = await get_current_and_forecast(farm.latitude, farm.longitude, farm.district, farm.state)
+    weather_desc = "Weather forecast unavailable"
+    if weather and weather.get("available") and weather.get("current"):
+        cur = weather["current"]
+        weather_desc = f"{cur.get('temperature_c', '')}°C, {cur.get('weather_condition', 'Clear')}, Rain prob: {cur.get('rain_probability', 0)}%"
+
+    tasks_today = []
+    crop_info = "No active crop recorded"
+    last_irr_desc = "None recorded"
+    alerts_list = []
+
+    if active_crop:
+        lc = calculate_lifecycle(active_crop.crop_name, active_crop.sowing_date)
+        crop_info = f"{active_crop.crop_name} (Stage: {lc.current_stage}, Day {lc.day_number})"
+
+        pending_tasks = (
+            db.query(CropTask)
+            .filter(
+                CropTask.crop_cycle_id == active_crop.id,
+                CropTask.scheduled_date == date.today(),
+                CropTask.status == TaskStatus.PENDING,
+            )
+            .all()
+        )
+        tasks_today = [t.title for t in pending_tasks]
+
+        last_irr = (
+            db.query(IrrigationLog)
+            .filter(IrrigationLog.crop_cycle_id == active_crop.id)
+            .order_by(IrrigationLog.date.desc())
+            .first()
+        )
+        if last_irr:
+            last_irr_desc = f"Last irrigated on {last_irr.date.isoformat()} via {last_irr.method.value}"
+
+        if weather.get("available"):
+            tomorrow_date = date.today() + timedelta(days=1)
+            has_irr_tmrw = (
+                db.query(CropTask)
+                .filter(
+                    CropTask.crop_cycle_id == active_crop.id,
+                    CropTask.scheduled_date == tomorrow_date,
+                    CropTask.task_type == TaskType.IRRIGATION,
+                    CropTask.status == TaskStatus.PENDING,
+                )
+                .first()
+                is not None
+            )
+            alerts_list = [
+                a.get("message", "")
+                for a in generate_farm_weather_alerts(
+                    weather=weather,
+                    last_irrigation_date=last_irr.date if last_irr else None,
+                    has_scheduled_irrigation_tomorrow=has_irr_tmrw,
+                )
+            ]
+
+    user_name = user.full_name or "Farmer"
+    lang = (user.preferences or {}).get("assistant_language", "auto")
+
+    # 2. One structured call to GPT-OSS 120B to turn facts into warm, farmer-friendly wording
+    prompt = (
+        f"You are Annapoorna AI generating the Daily Farm Briefing.\n\n"
+        f"FACTS:\n"
+        f"- Farmer: {user_name}\n"
+        f"- Farm: {farm.name} ({farm.district}, {farm.state})\n"
+        f"- Active Crop: {crop_info}\n"
+        f"- Weather Today: {weather_desc}\n"
+        f"- Tasks Scheduled for Today: {', '.join(tasks_today) if tasks_today else 'No pending tasks scheduled'}\n"
+        f"- Irrigation Status: {last_irr_desc}\n"
+        f"- Advisory Alerts: {'; '.join(alerts_list) if alerts_list else 'None'}\n\n"
+        f"Language requirement: Respond in {lang if lang != 'auto' else 'English'}.\n"
+        f"Synthesize these facts into a concise, encouraging, and structured morning briefing. "
+        f"Respond strictly in JSON matching the DailyBriefingOutput schema."
+    )
+
+    try:
+        briefing = await ai_service.generate_structured(
+            schema=DailyBriefingOutput,
+            prompt=prompt,
+            reasoning_effort="low",
+        )
+        return Envelope(data=briefing.model_dump())
+    except Exception as exc:
+        logger.warning("AI briefing generation failed, using deterministic fallback: %s", exc)
+        fallback = DailyBriefingOutput(
+            greeting=f"Good morning, {user_name}!",
+            headline=f"Daily overview for {farm.name}.",
+            action_items=tasks_today or ["Review farm and crop health status today."],
+            weather_summary=weather_desc,
+            crop_advisory=f"Keep monitoring {crop_info}." if active_crop else "Add a crop cycle to receive stage-specific advisories.",
+        )
+        return Envelope(data=fallback.model_dump())
+

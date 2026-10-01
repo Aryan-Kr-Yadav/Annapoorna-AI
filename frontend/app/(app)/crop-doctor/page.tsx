@@ -27,11 +27,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CropCycle, Diagnosis, DiagnosisAnalysisDetails } from "@/lib/types";
+import { useTranslation } from "@/lib/i18n";
 
 type SeverityFilter = "all" | "low" | "medium" | "high";
 
 export default function CropDoctorPage() {
   const api = useApi();
+  const { t } = useTranslation();
   const { selectedFarm, crops, selectedCrop, selectCrop } = useFarms();
 
   const [symptoms, setSymptoms] = useState("");
@@ -147,10 +149,10 @@ export default function CropDoctorPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-primary-950 flex items-center gap-2">
             <Stethoscope className="h-6 w-6 text-rose-600" />
-            <span>Crop Doctor</span>
+            <span>{t("doctor.title")}</span>
           </h1>
           <p className="text-xs sm:text-sm text-primary-600 mt-1">
-            Visual disease & pest diagnostics, actionable agronomic advice, and historical health monitoring.
+            {t("doctor.subtitle")}
           </p>
         </div>
 
@@ -203,7 +205,7 @@ export default function CropDoctorPage() {
           {/* Photo upload & preview */}
           <div className="space-y-1.5 flex flex-col justify-between">
             <div>
-              <label className="label">Plant / Leaf Photograph</label>
+              <label className="label">{t("doctor.upload_leaf")}</label>
               <div className="relative border-2 border-dashed border-primary-200 rounded-xl p-4 text-center hover:bg-primary-50/50 transition cursor-pointer">
                 <input
                   type="file"
@@ -246,12 +248,12 @@ export default function CropDoctorPage() {
             {analyzing ? (
               <>
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                <span>Analyzing Crop Health...</span>
+                <span>{t("doctor.analyzing")}</span>
               </>
             ) : (
               <>
                 <Stethoscope className="h-4 w-4" />
-                <span>Run Health Analysis</span>
+                <span>{t("doctor.analyze")}</span>
               </>
             )}
           </button>

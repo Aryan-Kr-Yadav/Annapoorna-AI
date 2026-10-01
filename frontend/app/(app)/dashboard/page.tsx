@@ -23,9 +23,11 @@ import {
   ArrowRight,
   Sparkles,
   Tractor,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DashboardData } from "@/lib/types";
+import { useTranslation } from "@/lib/i18n";
 
 function getGreeting(d: Date): string {
   const h = d.getHours();
@@ -51,10 +53,38 @@ function formatDateTime(d: Date): string {
 export default function DashboardPage() {
   const api = useApi();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { selectedFarm, selectedCrop, selectCrop, farms, loading: farmsLoading } = useFarms();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleToggleTask = async (taskId: string, currentCompleted: boolean) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        todays_tasks: prev.todays_tasks.map((task) =>
+          task.id === taskId ? { ...task, is_completed: !currentCompleted } : task
+        ),
+      };
+    });
+
+    try {
+      await api.put(`/tasks/${taskId}`, { is_completed: !currentCompleted });
+    } catch {
+      // Revert if error
+      setData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          todays_tasks: prev.todays_tasks.map((task) =>
+            task.id === taskId ? { ...task, is_completed: currentCompleted } : task
+          ),
+        };
+      });
+    }
+  };
 
   // Client-side date/time tracking to prevent Next.js SSR hydration mismatches
   const [mounted, setMounted] = useState(false);
@@ -216,7 +246,7 @@ export default function DashboardPage() {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-primary-500">
-                  Active Crops on this Farm ({data.all_active_crops.length})
+                  {t("dash.active_crops")} ({data.all_active_crops.length})
                 </h2>
                 <Link
                   href={`/farms/${selectedFarm?.id}`}
@@ -294,7 +324,7 @@ export default function DashboardPage() {
                   href={`/crops/${data.active_crop.crop_cycle_id}`}
                   className="btn-secondary text-xs inline-flex items-center gap-1.5"
                 >
-                  View Complete Crop Diary <ArrowRight className="h-3.5 w-3.5" />
+                  {t("dash.view_crop_diary")} <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>
 
@@ -325,7 +355,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center gap-2 text-primary-500">
                 <CloudSun className="h-4 w-4 text-sky-500" />
-                <span className="text-xs font-semibold uppercase tracking-wider">Weather Intelligence</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">{t("dash.weather_intel")}</span>
               </div>
               {data.weather?.available ? (
                 <>
@@ -371,17 +401,17 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center gap-2 text-primary-500">
                 <Droplets className="h-4 w-4 text-sky-500" />
-                <span className="text-xs font-semibold uppercase tracking-wider">Irrigation</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">{t("dash.irrigation")}</span>
               </div>
               {data.irrigation?.days_until_next !== null && data.irrigation?.days_until_next !== undefined ? (
                 <p className="mt-2.5 text-2xl font-bold text-primary-950">
                   {data.irrigation.days_until_next <= 0 ? "Due now" : `In ${data.irrigation.days_until_next} days`}
                 </p>
               ) : (
-                <p className="mt-2 text-sm text-primary-500">No irrigation logged yet for active crop.</p>
+                <p className="mt-2 text-sm text-primary-500">{t("irrigation.no_logs")}</p>
               )}
               <p className="mt-1 text-xs text-primary-500">{data.irrigation?.note}</p>
-              <Link href={data.active_crop ? `/crops/${data.active_crop.crop_cycle_id}` : "/farms"} className="mt-3 inline-block text-xs font-bold text-sky-700 hover:underline">
+              <Link href={data.active_crop ? `/crops/${data.active_crop.crop_cycle_id}?tab=irrigation` : "/farms"} className="mt-3 inline-block text-xs font-bold text-sky-700 hover:underline">
                 Log or view irrigation →
               </Link>
             </div>
@@ -390,7 +420,7 @@ export default function DashboardPage() {
             <div className="card">
               <div className="flex items-center gap-2 text-primary-500">
                 <Wallet className="h-4 w-4 text-emerald-500" />
-                <span className="text-xs font-semibold uppercase tracking-wider">Season Expenses</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">{t("dash.season_expenses")}</span>
               </div>
               <p className="mt-2.5 text-2xl font-bold text-primary-950">
                 {formatCurrencyINR(data.expenses?.total ?? 0)}
@@ -408,7 +438,7 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary-500">
                   <Stethoscope className="h-4 w-4 text-rose-500" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">Crop Health</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider">{t("dash.recent_inspections")}</span>
                 </div>
                 <Link href="/crop-doctor" className="text-xs font-bold text-rose-700 hover:underline">
                   Diagnose →
@@ -452,23 +482,52 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-primary-500">
                   <CheckSquare className="h-4 w-4 text-primary-600" />
-                  <span className="text-xs font-semibold uppercase tracking-wider">Today's Tasks</span>
+                  <span className="text-xs font-semibold uppercase tracking-wider">{t("dash.todays_tasks")}</span>
                 </div>
                 {data.active_crop && (
-                  <Link href={`/crops/${data.active_crop.crop_cycle_id}`} className="text-xs text-primary-600 font-semibold hover:underline">
-                    View All →
+                  <Link href={`/crops/${data.active_crop.crop_cycle_id}?tab=tasks`} className="text-xs text-primary-600 font-semibold hover:underline">
+                    {t("common.view_details")} →
                   </Link>
                 )}
               </div>
 
               {data.todays_tasks.length === 0 ? (
-                <p className="mt-2 text-xs text-primary-500">No pending tasks scheduled for today.</p>
+                <p className="mt-2 text-xs text-primary-500">{t("tasks.no_tasks")}</p>
               ) : (
                 <ul className="mt-2.5 space-y-1.5">
-                  {data.todays_tasks.map((t) => (
-                    <li key={t.id} className="flex items-center justify-between rounded-lg bg-primary-50/50 p-2 text-xs text-primary-900">
-                      <span className="font-medium truncate pr-2">{t.title}</span>
-                      <Badge variant="default">{t.task_type}</Badge>
+                  {data.todays_tasks.map((task) => (
+                    <li
+                      key={task.id}
+                      className={cn(
+                        "flex items-center justify-between rounded-lg p-2 text-xs transition-colors",
+                        task.is_completed
+                          ? "bg-emerald-50/60 text-primary-500 line-through"
+                          : "bg-primary-50/50 text-primary-900"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleTask(task.id, !!task.is_completed)}
+                          aria-label={task.is_completed ? "Mark incomplete" : "Mark complete"}
+                          className={cn(
+                            "h-4 w-4 shrink-0 rounded flex items-center justify-center border transition-all cursor-pointer",
+                            task.is_completed
+                              ? "bg-emerald-600 border-emerald-600 text-white"
+                              : "border-primary-300 hover:border-emerald-500 bg-white"
+                          )}
+                        >
+                          {task.is_completed && <Check className="h-3 w-3" />}
+                        </button>
+                        <span className={cn("font-medium truncate", task.is_completed && "text-primary-400")}>
+                          {task.title}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <Badge variant={task.is_completed ? "success" : "default"}>
+                          {task.is_completed ? t("common.completed") : task.task_type}
+                        </Badge>
+                      </div>
                     </li>
                   ))}
                 </ul>

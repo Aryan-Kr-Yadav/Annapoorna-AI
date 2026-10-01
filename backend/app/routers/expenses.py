@@ -42,6 +42,7 @@ def list_expenses(
 
 
 @router.put("/expenses/{expense_id}", response_model=Envelope[ExpenseOut])
+@router.patch("/expenses/{expense_id}", response_model=Envelope[ExpenseOut])
 def update_expense(
     expense_id: UUID, payload: ExpenseUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):

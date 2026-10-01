@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 from app.ai import tools as ai_tools
 from app.ai.context_builder import build_farm_crop_context
-from app.ai.groq_client import GroqConfigError, GroqResponseError, chat_completion
+from app.ai.service import ai_service, AIConfigError, AIResponseError
 from app.ai.prompts import SYSTEM_PROMPT, build_context_block, detect_message_style
 from app.ai.rag import retrieve_relevant_chunks
 from app.core.database import get_db
@@ -150,33 +150,22 @@ async def send_message(
     db.add(user_message)
     db.commit()
 
-    # --- Build bounded context ---
-    farm_context = build_farm_crop_context(db, user, session.farm_id, session.crop_cycle_id)
+    # --- Build bounded context with intelligent query routing ---
+    farm_context = build_farm_crop_context(db, user, session.farm_id, session.crop_cycle_id, query_text=payload.content)
     rag_chunks = await retrieve_relevant_chunks(db, payload.content)
 
-    # Language preference evaluation
+    # Language and style directives
     user_prefs = user.preferences or {}
     assistant_lang = user_prefs.get("assistant_language", "auto")
-    if assistant_lang == "en":
-        style_directive = "\n\n[LANGUAGE DIRECTIVE: User has explicitly chosen English. You MUST respond strictly in English.]"
-    elif assistant_lang == "hi":
-        style_directive = "\n\n[LANGUAGE DIRECTIVE: User has explicitly chosen Hindi. You MUST respond strictly in Hindi using Devanagari script.]"
-    elif assistant_lang == "hinglish":
-        style_directive = "\n\n[LANGUAGE DIRECTIVE: User has explicitly chosen Hinglish. You MUST respond naturally in Hinglish using Latin script.]"
-    else:
-        detected_style = detect_message_style(payload.content)
-        style_directive = f"\n\n[DETECTED USER MESSAGE STYLE: {detected_style} — You MUST respond strictly in {detected_style}.]"
-
     assistant_style = user_prefs.get("assistant_style", "balanced")
-    if assistant_style == "concise":
-        style_directive += "\n[RESPONSE LENGTH/STYLE: Concise. Keep answers brief, direct, and actionable with minimal introductory text.]"
-    elif assistant_style == "detailed":
-        style_directive += "\n[RESPONSE LENGTH/STYLE: Detailed. Provide thorough, step-by-step agronomic guidance with background rationale.]"
+    
+    from app.ai.prompts import get_language_directive, get_style_directive
+    style_directive = get_language_directive(assistant_lang, payload.content) + get_style_directive(assistant_style)
 
-    if session.farm_id:
+    if session.farm_id and farm_context:
         context_block = build_context_block(farm_context)
     else:
-        context_block = "[CONTEXT MODE: General Knowledge & Farming Concepts. No specific farm or crop is selected for this conversation.]"
+        context_block = "[CONTEXT MODE: General Knowledge & Farming Science. Answering conceptual question directly.]"
 
     system_content = SYSTEM_PROMPT + style_directive + "\n\n" + context_block
     if session.summary:
@@ -184,6 +173,27 @@ async def send_message(
     if rag_chunks:
         sources_block = "\n".join(f"- {c['content']} (source: {c['source_title']})" for c in rag_chunks)
         system_content += f"\n\nRelevant knowledge base excerpts:\n{sources_block}"
+
+    # If the user uploaded an image in this turn, perform Stage 1 visual analysis using Qwen Vision
+    # before passing synthesized visual observations to GPT-OSS 120B reasoning.
+    visual_observations_text = None
+    if payload.image_url:
+        try:
+            vision_query = payload.content or "Analyze plant health, leaf symptoms, or pest presence in this image."
+            crop_hint = farm_context.get("active_crop", "")
+            prompt_for_vision = (
+                f"You are the visual inspection stage for Annapoorna AI. Analyze this image thoroughly.\n"
+                f"Crop context: {crop_hint or 'Crop in Indian agriculture'}.\n"
+                f"Farmer's query: {vision_query}\n\n"
+                f"Provide concise, factual visual observations: what plant part is visible, colors, spots, lesions, pest signs, or physical damage."
+            )
+            visual_observations_text = await ai_service.analyze_image(
+                prompt=prompt_for_vision,
+                image_url=payload.image_url,
+            )
+        except Exception as vision_err:
+            logger.warning("Stage 1 visual analysis failed: %s", vision_err)
+            visual_observations_text = "Visual analysis could not extract specific features from this image."
 
     recent_messages = (
         db.query(ChatMessage)
@@ -195,26 +205,27 @@ async def send_message(
     recent_messages.reverse()
 
     messages = [{"role": "system", "content": system_content}]
+
+    # Build pure text conversation history for GPT-OSS 120B (GPT-OSS does not accept image_url blocks)
     for m in recent_messages:
-        if m.image_url:
-            messages.append(
-                {
-                    "role": m.role.value,
-                    "content": [
-                        {"type": "text", "text": m.content},
-                        {"type": "image_url", "image_url": {"url": m.image_url}},
-                    ],
-                }
-            )
-        else:
-            messages.append({"role": m.role.value, "content": m.content})
+        content_text = m.content or ""
+        if m.id == user_message.id and visual_observations_text:
+            content_text = f"{content_text}\n\n[PHOTO VISUAL OBSERVATIONS (from Vision Model)]:\n{visual_observations_text}".strip()
+        elif m.image_url:
+            content_text = f"[Attached photo from earlier turn]: {content_text}".strip()
+
+        messages.append({"role": m.role.value, "content": content_text})
 
     tools_used: list[str] = []
     final_text = None
 
     try:
         for _ in range(MAX_TOOL_ROUNDS):
-            assistant_msg = await chat_completion(messages, tools=ai_tools.TOOL_DEFINITIONS)
+            assistant_msg = await ai_service.generate_with_tools(
+                messages,
+                tools=ai_tools.TOOL_DEFINITIONS,
+                reasoning_effort="medium",
+            )
 
             if assistant_msg.get("tool_calls"):
                 messages.append(assistant_msg)
@@ -239,18 +250,18 @@ async def send_message(
 
             final_text = assistant_msg.get("content", "")
             break
-    except GroqConfigError as exc:
-        logger.error("GroqConfigError in chat session %s: %s", session.id, exc)
-        final_text = f"Annapoorna AI isn't fully configured yet: {exc}"
-    except GroqResponseError as exc:
-        logger.error("GroqResponseError in chat session %s: %s", session.id, exc)
-        final_text = (
-            "Annapoorna AI is temporarily unavailable. Please try again in a moment — "
+    except AIConfigError as exc:
+        logger.error("AIConfigError in chat session %s: %s", session.id, exc)
+        final_text = "AI service configuration is incomplete. Please contact your system administrator."
+    except AIResponseError as exc:
+        logger.error("AIResponseError in chat session %s: %s", session.id, exc)
+        final_text = exc.user_safe_message or (
+            "Annapoorna AI is temporarily busy. Please try again in a moment — "
             "your message has been saved."
         )
     except Exception as exc:
         logger.error("Unexpected error in chat session %s: %s", session.id, exc, exc_info=True)
-        final_text = "I encountered an unexpected issue while processing your request. Please try again in a moment."
+        final_text = "I encountered an issue processing your request. Please try again in a moment."
 
     if final_text is None:
         final_text = "I wasn't able to finish that request. Could you try rephrasing it?"

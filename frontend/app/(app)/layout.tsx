@@ -21,14 +21,14 @@ function TopNavBar({
   const { language, setLanguage } = useTranslation();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-primary-100 bg-white/95 px-4 sm:px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-primary-100 dark:border-primary-900/40 bg-white/95 dark:bg-[#121911]/95 px-4 sm:px-6 backdrop-blur-md">
       <div className="flex items-center gap-3">
         {/* Mobile Hamburger Button */}
         <button
           type="button"
           onClick={onToggleMobile}
           aria-label="Open navigation menu"
-          className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl border border-primary-200 text-primary-700 hover:bg-primary-50 transition"
+          className="flex md:hidden h-9 w-9 items-center justify-center rounded-xl border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition"
         >
           <Menu className="h-5 w-5" />
         </button>
@@ -39,13 +39,13 @@ function TopNavBar({
           onClick={onToggleDesktop}
           aria-label={isDesktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={isDesktopCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className="hidden md:flex h-9 w-9 items-center justify-center rounded-xl border border-primary-200 text-primary-700 hover:bg-primary-50 transition"
+          className="hidden md:flex h-9 w-9 items-center justify-center rounded-xl border border-primary-200 dark:border-primary-800 text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition"
         >
           <Menu className="h-4 w-4" />
         </button>
 
         {/* Mobile App Title */}
-        <div className="flex md:hidden items-center gap-1.5 font-bold text-primary-900 text-sm">
+        <div className="flex md:hidden items-center gap-1.5 font-bold text-primary-900 dark:text-primary-100 text-sm">
           <Sprout className="h-4 w-4 text-primary-600" />
           <span>Annapoorna</span>
         </div>
@@ -59,7 +59,7 @@ function TopNavBar({
         <button
           type="button"
           onClick={() => setLanguage(language === "en" ? "hi" : "en")}
-          className="rounded-lg border border-primary-200 px-2.5 py-1 text-xs font-semibold text-primary-700 hover:bg-primary-50 transition shadow-2xs"
+          className="rounded-lg border border-primary-200 dark:border-primary-800 px-2.5 py-1 text-xs font-semibold text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition shadow-2xs"
           title="Switch UI Language"
         >
           {language === "en" ? "हिन्दी" : "EN"}
@@ -91,7 +91,7 @@ function MainLayoutContainer({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#faf9f6]">
+    <div className="flex min-h-screen bg-[rgb(var(--background))] text-[rgb(var(--foreground))]">
       {/* Desktop Sidebar & Mobile Drawer */}
       <Sidebar
         collapsed={collapsed}

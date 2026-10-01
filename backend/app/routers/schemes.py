@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.ai.groq_client import chat_completion
+from app.ai.service import ai_service
 from app.core.database import get_db
 from app.core.security import get_current_user, get_optional_current_user
 from app.models.scheme import Scheme
@@ -213,18 +213,14 @@ async def explain_scheme(
         f"VERIFIED SCHEME DATA:\n{json.dumps(verified_context, indent=2, ensure_ascii=False)}"
     )
 
-    groq_messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_query},
-    ]
-
     explanation_text = ""
     try:
-        completion = await chat_completion(
-            messages=groq_messages,
+        explanation_text = await ai_service.generate_text(
+            prompt=user_query,
+            system_prompt=system_prompt,
+            reasoning_effort="medium",
             temperature=0.3,
         )
-        explanation_text = completion.get("content", "").strip()
     except Exception as exc:
         logger.warning(f"Groq scheme explanation failed, falling back to verified text: {exc}")
         # Deterministic fallback text directly from verified data so feature NEVER breaks

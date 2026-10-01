@@ -7,9 +7,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { CardSkeleton } from "@/components/ui/Skeleton";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
 import { TrendingUp } from "lucide-react";
+import { useTranslation } from "@/lib/i18n";
 
 export default function MarketPage() {
   const api = useApi();
+  const { t } = useTranslation();
   const { selectedFarm } = useFarms();
   const [crop, setCrop] = useState("");
   const [result, setResult] = useState<any>(null);
@@ -28,7 +30,7 @@ export default function MarketPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-primary-900">Market Intelligence</h1>
+      <h1 className="text-2xl font-semibold text-primary-900">{t("market.title")}</h1>
       <div className="flex gap-2">
         <input className="input flex-1" placeholder="Crop name (e.g. Wheat)" value={crop} onChange={(e) => setCrop(e.target.value)} onKeyDown={(e) => e.key === "Enter" && search()} />
         <button onClick={search} className="btn-primary">Search</button>

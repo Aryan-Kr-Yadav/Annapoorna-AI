@@ -13,13 +13,19 @@
 import { useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://localhost:8000/api/v1";
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  code: string;
+
+  constructor(message: string, status: number, code = "API_ERROR") {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -39,46 +45,25 @@ async function request<T>(
 
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}${path}`, {
+    res = await fetch(`${API_BASE_URL}${path}`, {
       method,
       headers,
       body: body ? (isFormData ? (body as FormData) : JSON.stringify(body)) : undefined,
     });
   } catch (err: any) {
-    // If request failed and BASE_URL points to localhost/127.0.0.1, try alternative IP/host fallback
-    let fallbackUrl = "";
-    if (BASE_URL.includes("localhost")) {
-      fallbackUrl = BASE_URL.replace("localhost", "127.0.0.1");
-    } else if (BASE_URL.includes("127.0.0.1")) {
-      fallbackUrl = BASE_URL.replace("127.0.0.1", "localhost");
-    }
-
-    if (fallbackUrl) {
-      try {
-        res = await fetch(`${fallbackUrl}${path}`, {
-          method,
-          headers,
-          body: body ? (isFormData ? (body as FormData) : JSON.stringify(body)) : undefined,
-        });
-      } catch (fallbackErr: any) {
-        throw new ApiError(
-          `Backend server is offline or unreachable on ${BASE_URL} and ${fallbackUrl}. Please ensure the backend is running.`,
-          0
-        );
-      }
-    } else {
-      throw new ApiError(
-        `Backend server is offline or unreachable. Please ensure the backend server is running on ${BASE_URL}.`,
-        0
-      );
-    }
+    // Pure network connectivity or server unreachable error
+    throw new ApiError(
+      "Backend server is offline or unreachable. Please ensure the backend is running.",
+      0,
+      "NETWORK_ERROR"
+    );
   }
 
   let json: any = null;
   try {
     json = await res.json();
   } catch {
-    // no body
+    // No response body or non-JSON body
   }
 
   if (!res.ok) {
@@ -86,7 +71,57 @@ async function request<T>(
       // Token missing/expired/invalid — redirect to sign-in
       window.location.href = "/sign-in";
     }
-    throw new ApiError(json?.message || `Request failed (${res.status})`, res.status);
+
+    // Precise error classification according to HTTP status code
+    let detailMsg = json?.message || json?.detail;
+    if (typeof detailMsg === "object") {
+      detailMsg = JSON.stringify(detailMsg);
+    }
+
+    let defaultMsg = `Request failed (${res.status})`;
+    let code = "HTTP_ERROR";
+
+    switch (res.status) {
+      case 400:
+        defaultMsg = "Invalid request. Please check the entered data.";
+        code = "BAD_REQUEST";
+        break;
+      case 401:
+        defaultMsg = "Your session has expired. Please sign in again.";
+        code = "UNAUTHORIZED";
+        break;
+      case 403:
+        defaultMsg = "Access denied. You do not have permission for this resource.";
+        code = "FORBIDDEN";
+        break;
+      case 404:
+        defaultMsg = "The requested resource was not found.";
+        code = "NOT_FOUND";
+        break;
+      case 409:
+        defaultMsg = "This record already exists or conflicts with existing data.";
+        code = "CONFLICT";
+        break;
+      case 422:
+        defaultMsg = "Validation error: please check your input data.";
+        code = "VALIDATION_ERROR";
+        break;
+      case 429:
+        defaultMsg = "AI or server rate limit reached. Please wait a moment.";
+        code = "RATE_LIMIT";
+        break;
+      case 500:
+      case 502:
+        defaultMsg = "Internal server error. Please try again later.";
+        code = "SERVER_ERROR";
+        break;
+      case 503:
+        defaultMsg = "Backend service is temporarily unavailable.";
+        code = "SERVICE_UNAVAILABLE";
+        break;
+    }
+
+    throw new ApiError(detailMsg || defaultMsg, res.status, code);
   }
 
   return (json?.data ?? json) as T;

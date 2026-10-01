@@ -97,9 +97,9 @@ export function FloatingAssistant() {
           role: "assistant",
           content: e?.status === 401
             ? "Your session has expired. Please sign in again."
-            : e?.message?.includes("fetch")
-            ? "Backend could not be reached."
-            : "AI service is temporarily unavailable. Please try again.",
+            : e?.status === 0 || e?.code === "NETWORK_ERROR" || e?.message?.includes("offline")
+            ? "Backend server is offline or unreachable. Please verify the backend is running."
+            : e?.message || "AI service is temporarily unavailable. Please try again.",
           image_url: null,
           created_at: new Date().toISOString(),
         },
@@ -174,13 +174,13 @@ export function FloatingAssistant() {
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-white sm:inset-auto sm:bottom-6 sm:right-5 sm:h-[560px] sm:w-96 sm:rounded-xl sm:border sm:border-primary-100 sm:shadow-2xl">
-      <div className="flex items-center justify-between border-b border-primary-100 px-4 py-3">
+    <div className="fixed inset-0 z-40 flex flex-col bg-white dark:bg-[#151e14] sm:inset-auto sm:bottom-6 sm:right-5 sm:h-[560px] sm:w-96 sm:rounded-2xl sm:border sm:border-primary-100 dark:sm:border-primary-800 sm:shadow-2xl">
+      <div className="flex items-center justify-between border-b border-primary-100 dark:border-primary-800 px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-primary-900">Annapoorna AI</p>
-          {selectedFarm && <p className="text-xs text-primary-500">{selectedFarm.name}</p>}
+          <p className="text-sm font-semibold text-primary-900 dark:text-primary-100">Annapoorna AI</p>
+          {selectedFarm && <p className="text-xs text-primary-500 dark:text-primary-400">{selectedFarm.name}</p>}
         </div>
-        <button onClick={() => setOpen(false)} className="rounded-md p-1 text-primary-500 hover:bg-primary-50">
+        <button onClick={() => setOpen(false)} className="rounded-md p-1 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/40">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -192,7 +192,7 @@ export function FloatingAssistant() {
               <button
                 key={qa}
                 onClick={() => sendMessage(qa)}
-                className="rounded-full border border-primary-200 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50"
+                className="rounded-full border border-primary-200 dark:border-primary-800 px-3 py-1.5 text-xs font-medium text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/40 transition"
               >
                 {qa}
               </button>
@@ -206,7 +206,7 @@ export function FloatingAssistant() {
               className={
                 m.role === "user"
                   ? "max-w-[80%] rounded-2xl rounded-br-sm bg-primary-600 px-3 py-2 text-sm text-white"
-                  : "group max-w-[80%] rounded-2xl rounded-bl-sm bg-primary-50 px-3 py-2 text-sm text-primary-900"
+                  : "group max-w-[80%] rounded-2xl rounded-bl-sm bg-primary-50 dark:bg-[#1f2b1d] px-3 py-2 text-sm text-primary-900 dark:text-primary-100"
               }
             >
               {m.image_url && <img src={m.image_url} alt="attachment" className="mb-1 max-h-40 rounded-lg" />}
@@ -214,7 +214,7 @@ export function FloatingAssistant() {
               {m.role === "assistant" && m.content && (
                 <button
                   onClick={() => speakText(m.content)}
-                  className="mt-1 hidden text-primary-400 hover:text-primary-600 group-hover:inline-flex"
+                  className="mt-1 hidden text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 group-hover:inline-flex"
                   aria-label="Read response aloud"
                   title="Read response"
                 >
@@ -226,24 +226,24 @@ export function FloatingAssistant() {
         ))}
 
         {sending && (
-          <div className="flex items-center gap-2 text-xs text-primary-500">
+          <div className="flex items-center gap-2 text-xs text-primary-500 dark:text-primary-400">
             <Loader2 className="h-3.5 w-3.5 animate-spin" /> {toolActivity}
           </div>
         )}
 
         {voiceError && (
-          <div className="rounded-lg bg-red-50 p-2 text-xs text-red-600">{voiceError}</div>
+          <div className="rounded-lg bg-red-50 dark:bg-red-950/40 p-2 text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/50">{voiceError}</div>
         )}
 
         {sources.length > 0 && (
-          <div className="rounded-lg bg-primary-50 p-2 text-xs text-primary-600">
+          <div className="rounded-lg bg-primary-50 dark:bg-primary-900/30 p-2 text-xs text-primary-600 dark:text-primary-300">
             Sources: {sources.map((s) => s.title).join(", ")}
           </div>
         )}
       </div>
 
       {pendingImage && (
-        <div className="border-t border-primary-100 px-4 py-2 text-xs text-primary-600">
+        <div className="border-t border-primary-100 dark:border-primary-800 px-4 py-2 text-xs text-primary-600 dark:text-primary-400">
           Attached: {pendingImage.name}{" "}
           <button onClick={() => setPendingImage(null)} className="ml-1 underline">
             remove
@@ -252,12 +252,12 @@ export function FloatingAssistant() {
       )}
 
       {listening && (
-        <div className="border-t border-primary-100 px-4 py-2 text-xs text-primary-600 animate-pulse">
+        <div className="border-t border-primary-100 dark:border-primary-800 px-4 py-2 text-xs text-primary-600 dark:text-primary-400 animate-pulse">
           🎙️ Listening... Speak now
         </div>
       )}
 
-      <div className="flex items-center gap-2 border-t border-primary-100 px-3 py-3">
+      <div className="flex items-center gap-2 border-t border-primary-100 dark:border-primary-800 px-3 py-3 bg-white dark:bg-[#151e14]">
         <input
           ref={fileInputRef}
           type="file"
@@ -267,7 +267,7 @@ export function FloatingAssistant() {
         />
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="rounded-lg p-2 text-primary-500 hover:bg-primary-50"
+          className="rounded-lg p-2 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/40"
           aria-label="Attach image"
         >
           <ImageIcon className="h-5 w-5" />
@@ -275,7 +275,7 @@ export function FloatingAssistant() {
         {voiceSupported && (
           <button
             onClick={toggleVoice}
-            className={`rounded-lg p-2 ${listening ? "bg-red-100 text-red-600" : "text-primary-500 hover:bg-primary-50"}`}
+            className={`rounded-lg p-2 ${listening ? "bg-red-100 dark:bg-red-950/60 text-red-600 dark:text-red-400" : "text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/40"}`}
             aria-label={listening ? "Stop listening" : "Voice input"}
             title={listening ? "Stop listening" : "Voice input"}
           >

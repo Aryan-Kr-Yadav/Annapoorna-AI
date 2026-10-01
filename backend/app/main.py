@@ -64,6 +64,8 @@ def root():
     return {"name": "Annapoorna AI 2.0 API", "status": "running", "docs": "/docs"}
 
 
+@app.get("/health")
+@app.get("/health-check")
 @app.get(f"{settings.API_V1_PREFIX}/health-check")
 @app.get(f"{settings.API_V1_PREFIX}/health")
 def health_check():
@@ -71,7 +73,10 @@ def health_check():
         "status": "ok",
         "ai_provider": "groq",
         "ai_configured": bool(settings.GROQ_API_KEY),
-        "ai_model": settings.GROQ_CHAT_MODEL,
+        "ai_model": settings.text_model,
+        "primary_text_model": settings.text_model,
+        "vision_model": settings.vision_model,
+        "fallback_text_model": settings.GROQ_FALLBACK_TEXT_MODEL,
         "auth_configured": bool(settings.NEON_AUTH_JWKS_URL),
         "database": "configured",
     }

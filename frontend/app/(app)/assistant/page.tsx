@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   HelpCircle,
   ChevronDown,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ChatMessageT, ChatSessionT } from "@/lib/types";
@@ -42,6 +43,8 @@ export default function AssistantPage() {
   const [messages, setMessages] = useState<ChatMessageT[]>([]);
   const [input, setInput] = useState("");
   const [pendingImage, setPendingImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sources, setSources] = useState<any[]>([]);
 
@@ -64,6 +67,40 @@ export default function AssistantPage() {
       setVoiceSupported(!!SpeechRecognition);
     }
   }, []);
+
+  // Manage image preview object URL lifecycle
+  useEffect(() => {
+    if (!pendingImage) {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+        setImagePreviewUrl(null);
+      }
+      return;
+    }
+    const url = URL.createObjectURL(pendingImage);
+    setImagePreviewUrl(url);
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [pendingImage]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleImageSelect(file: File | null) {
+    setImageError(null);
+    if (!file) {
+      setPendingImage(null);
+      return;
+    }
+    const validMimes = ["image/jpeg", "image/png", "image/webp"];
+    if (!validMimes.includes(file.type)) {
+      setImageError("Please upload a JPG, PNG, or WebP photo.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError("Image is too large (maximum 5MB).");
+      return;
+    }
+    setPendingImage(file);
+  }
 
   const loadSessions = useCallback(() => {
     api.get<ChatSessionT[]>("/chat/sessions").then((s) => {
@@ -195,9 +232,9 @@ export default function AssistantPage() {
       const errorMsg =
         e?.status === 401
           ? "Your session has expired. Please sign in again."
-          : e?.message?.includes("fetch")
-          ? "Backend could not be reached."
-          : "AI service is temporarily unavailable. Please try again.";
+          : e?.status === 0 || e?.code === "NETWORK_ERROR" || e?.message?.includes("offline")
+          ? "Backend server is offline or unreachable. Please verify the backend is running."
+          : e?.message || "AI service is temporarily unavailable. Please try again.";
       setMessages((prev) => [
         ...prev,
         {
@@ -324,8 +361,8 @@ export default function AssistantPage() {
             <div>
               <h1 className="text-lg font-bold text-primary-950 flex items-center gap-2">
                 <span>Annapoorna Assistant</span>
-                <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-semibold text-primary-800">
-                  Groq Qwen 27B
+                <span className="rounded-full bg-primary-100 dark:bg-primary-900/60 px-2 py-0.5 text-[10px] font-semibold text-primary-800 dark:text-primary-300">
+                  Farm Intelligence
                 </span>
               </h1>
 
@@ -494,11 +531,38 @@ export default function AssistantPage() {
           )}
         </div>
 
+        {imageError && (
+          <div className="flex items-center justify-between gap-2 py-1.5 text-xs text-red-700 bg-red-50 border border-red-200 px-3 rounded-lg mb-2">
+            <span>⚠️ {imageError}</span>
+            <button type="button" onClick={() => setImageError(null)} className="underline font-bold text-red-800">
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {pendingImage && (
-          <div className="flex items-center gap-2 py-1 text-xs text-primary-600 bg-primary-50 px-3 rounded-lg mb-2">
-            <span>Attached: {pendingImage.name}</span>
-            <button type="button" onClick={() => setPendingImage(null)} className="underline font-bold text-red-600">
-              Remove
+          <div className="flex items-center gap-3 py-1.5 text-xs text-primary-800 bg-primary-50 border border-primary-200 px-3 rounded-lg mb-2">
+            {imagePreviewUrl && (
+              <img
+                src={imagePreviewUrl}
+                alt="Upload preview"
+                className="h-10 w-10 rounded-md object-cover border border-primary-200 shadow-2xs"
+              />
+            )}
+            <div className="flex-1 truncate">
+              <span className="font-semibold truncate block">{pendingImage.name}</span>
+              <span className="text-[10px] text-primary-500">{(pendingImage.size / 1024).toFixed(0)} KB • Ready to send</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingImage(null);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+              className="rounded p-1 text-red-600 hover:bg-red-50 transition"
+              title="Remove attachment"
+            >
+              <X className="h-4 w-4" />
             </button>
           </div>
         )}
@@ -516,7 +580,7 @@ export default function AssistantPage() {
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="hidden"
-            onChange={(e) => setPendingImage(e.target.files?.[0] || null)}
+            onChange={(e) => handleImageSelect(e.target.files?.[0] || null)}
           />
 
           <button

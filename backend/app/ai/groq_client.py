@@ -1,23 +1,32 @@
 """
 Client around Groq's high-speed OpenAI-compatible completions API.
+Delegates to the centralized AIService router.
 API keys are read from backend environment variables only —
 this module is never imported by, or exposed to, any frontend code.
 """
 from typing import Any, Optional
-
 import httpx
 
 from app.core.config import get_settings
+from app.ai.service import (
+    ai_service,
+    AIConfigError,
+    AIResponseError,
+    classify_ai_error,
+    message_has_image,
+)
 
 settings = get_settings()
 
+# Backwards compatibility aliases
+GroqConfigError = AIConfigError
+GroqResponseError = AIResponseError
+_has_image_content = message_has_image
 
-class GroqConfigError(Exception):
-    pass
 
-
-class GroqResponseError(Exception):
-    pass
+def _classify_groq_error(status_code: int, err_detail: str) -> str:
+    user_msg, _ = classify_ai_error(status_code, err_detail)
+    return user_msg
 
 
 def _resolve_ai_config() -> tuple[str, str, str, str]:
@@ -29,12 +38,10 @@ def _resolve_ai_config() -> tuple[str, str, str, str]:
         raise GroqConfigError(
             "GROQ_API_KEY is not set. Add GROQ_API_KEY to the backend .env file."
         )
-
-    base = settings.GROQ_API_BASE or "https://api.groq.com/openai/v1"
-    chat_model = settings.GROQ_CHAT_MODEL or "qwen/qwen3.8-27b"
-    vision_model = settings.GROQ_VISION_MODEL or "qwen/qwen3.8-27b"
-
-    return key, base.rstrip("/"), chat_model, vision_model
+    base = (settings.GROQ_API_BASE or "https://api.groq.com/openai/v1").rstrip("/")
+    chat_model = settings.text_model
+    vision_model = settings.vision_model
+    return key, base, chat_model, vision_model
 
 
 async def chat_completion(
@@ -44,95 +51,24 @@ async def chat_completion(
     temperature: float = 0.4,
 ) -> dict[str, Any]:
     """
-    Calls the Groq chat completions endpoint. Returns the raw first-choice
-    message dict (may include `tool_calls`).
+    Calls Groq with model routing via AIService:
+    routes multimodal (image) messages to GROQ_VISION_MODEL (qwen/qwen3.8-27b),
+    and text-only messages to GROQ_CHAT_MODEL (openai/gpt-oss-120b).
     """
-    api_key, api_base, default_chat_model, _ = _resolve_ai_config()
-
-    payload: dict[str, Any] = {
-        "model": model or default_chat_model,
-        "messages": messages,
-        "temperature": temperature,
-    }
-    if tools:
-        payload["tools"] = tools
-        payload["tool_choice"] = "auto"
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "User-Agent": "Annapoorna-AI/2.0",
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=45) as client:
-            resp = await client.post(
-                f"{api_base}/chat/completions",
-                headers=headers,
-                json=payload,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-    except httpx.HTTPStatusError as exc:
-        err_detail = ""
-        try:
-            err_json = exc.response.json()
-            err_detail = err_json.get("error", {}).get("message") or str(err_json)
-        except Exception:
-            err_detail = exc.response.text[:250]
-        raise GroqResponseError(f"Groq API returned error {exc.response.status_code}: {err_detail}") from exc
-    except httpx.RequestError as exc:
-        raise GroqResponseError(f"Could not reach the Groq API: {exc}") from exc
-
-    choices = data.get("choices") or []
-    if not choices:
-        raise GroqResponseError("Groq returned no response choices.")
-
-    return choices[0]["message"]
+    return await ai_service.generate_with_tools(
+        messages=messages,
+        tools=tools or [],
+        model_override=model,
+        temperature=temperature,
+    )
 
 
 async def vision_completion(prompt: str, image_url: str, model: Optional[str] = None) -> str:
-    """Image + text understanding call (e.g. Crop Doctor). Returns plain text content."""
-    api_key, api_base, _, default_vision_model = _resolve_ai_config()
-
-    messages = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt},
-                {"type": "image_url", "image_url": {"url": image_url}},
-            ],
-        }
-    ]
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "User-Agent": "Annapoorna-AI/2.0",
-    }
-
-    try:
-        async with httpx.AsyncClient(timeout=45) as client:
-            resp = await client.post(
-                f"{api_base}/chat/completions",
-                headers=headers,
-                json={"model": model or default_vision_model, "messages": messages, "temperature": 0.3},
-            )
-            resp.raise_for_status()
-            data = resp.json()
-    except httpx.HTTPStatusError as exc:
-        err_detail = ""
-        try:
-            err_json = exc.response.json()
-            err_detail = err_json.get("error", {}).get("message") or str(err_json)
-        except Exception:
-            err_detail = exc.response.text[:250]
-        raise GroqResponseError(f"Groq vision API returned error {exc.response.status_code}: {err_detail}") from exc
-    except httpx.RequestError as exc:
-        raise GroqResponseError(f"Could not reach the Groq API: {exc}") from exc
-
-    choices = data.get("choices") or []
-    if not choices:
-        raise GroqResponseError("Groq returned no response choices.")
-    return choices[0]["message"].get("content", "")
+    """Image + text understanding call (Crop Doctor / vision). Returns plain text content."""
+    return await ai_service.analyze_image(
+        prompt=prompt,
+        image_url=image_url,
+    )
 
 
 async def create_embedding(text: str) -> Optional[list[float]]:

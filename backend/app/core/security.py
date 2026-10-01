@@ -31,7 +31,11 @@ settings = get_settings()
 bearer_scheme = HTTPBearer(auto_error=False)
 
 # --- JWKS client (caches keys, handles rotation) ---
-jwks_client = pyjwt.PyJWKClient(settings.NEON_AUTH_JWKS_URL)
+jwks_client = (
+    pyjwt.PyJWKClient(settings.NEON_AUTH_JWKS_URL)
+    if settings.NEON_AUTH_JWKS_URL and settings.NEON_AUTH_JWKS_URL.startswith("http")
+    else None
+)
 
 
 # --- Token verification / current-user dependency ---
@@ -62,6 +66,9 @@ def get_current_user(
 
     if credentials is None:
         raise HTTPException(status_code=401, detail="Missing authentication token.")
+
+    if not jwks_client:
+        raise HTTPException(status_code=500, detail="Authentication service is not configured.")
 
     try:
         signing_key = jwks_client.get_signing_key_from_jwt(credentials.credentials)

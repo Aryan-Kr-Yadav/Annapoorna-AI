@@ -7,8 +7,17 @@
   --foreground: 30 32 27;
 }
 
+.dark {
+  --background: 18 24 17;
+  --foreground: 236 242 232;
+}
+
 * {
   border-color: theme("colors.primary.100");
+}
+
+.dark * {
+  border-color: rgba(70, 117, 43, 0.25);
 }
 
 body {
@@ -18,18 +27,18 @@ body {
 
 @layer components {
   .card {
-    @apply bg-white rounded-xl border border-primary-100 shadow-sm p-5;
+    @apply bg-white dark:bg-[#192317] rounded-xl border border-primary-100 dark:border-primary-900/50 shadow-sm p-5 text-primary-900 dark:text-primary-100;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary-600 dark:bg-primary-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-700 dark:hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-primary-200 bg-white px-4 py-2 text-sm font-medium text-primary-800 transition hover:bg-primary-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-primary-200 dark:border-primary-800 bg-white dark:bg-[#222e1f] px-4 py-2 text-sm font-medium text-primary-800 dark:text-primary-200 transition hover:bg-primary-50 dark:hover:bg-primary-900/40;
   }
   .input {
-    @apply w-full rounded-lg border border-primary-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500;
+    @apply w-full rounded-lg border border-primary-200 dark:border-primary-800 bg-white dark:bg-[#141c13] px-3 py-2 text-sm outline-none focus:border-primary-500 dark:focus:border-primary-400 focus:ring-1 focus:ring-primary-500 text-primary-900 dark:text-primary-100 placeholder:text-primary-400 dark:placeholder:text-primary-600;
   }
   .label {
-    @apply text-sm font-medium text-primary-900 mb-1 block;
+    @apply text-sm font-medium text-primary-900 dark:text-primary-200 mb-1 block;
   }
 }

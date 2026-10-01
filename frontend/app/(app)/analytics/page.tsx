@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useFarms } from "@/lib/farm-context";
 import { useApi } from "@/lib/api-client";
+import { useTranslation } from "@/lib/i18n";
 import { CardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatCurrencyINR, formatDate } from "@/lib/utils";
@@ -50,13 +52,31 @@ interface SeasonReport {
   };
 }
 
-export default function AnalyticsPage() {
+function AnalyticsContent() {
   const api = useApi();
-  const { selectedFarm, crops, selectedCrop, selectCrop } = useFarms();
+  const { t } = useTranslation();
+  const searchParams = useSearchParams();
+  const { selectedFarm, selectFarm, farms, crops, selectedCrop, selectCrop } = useFarms();
 
   const [viewMode, setViewMode] = useState<"farm" | "crop">("farm");
   const [seasons, setSeasons] = useState<SeasonReport[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const urlCropId = searchParams.get("crop_id");
+  const urlFarmId = searchParams.get("farm_id");
+
+  useEffect(() => {
+    if (urlFarmId && farms.some((f) => f.id === urlFarmId) && selectedFarm?.id !== urlFarmId) {
+      selectFarm(urlFarmId);
+    }
+  }, [urlFarmId, farms]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (urlCropId) {
+      setViewMode("crop");
+      selectCrop(urlCropId);
+    }
+  }, [urlCropId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!selectedFarm) return;
@@ -297,5 +317,13 @@ export default function AnalyticsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<CardSkeleton />}>
+      <AnalyticsContent />
+    </Suspense>
   );
 }

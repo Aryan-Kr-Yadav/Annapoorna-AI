@@ -1,16 +1,17 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.models.crop import CropCycle
 from app.models.irrigation import IrrigationLog
 from app.models.user import User
 from app.schemas.common import Envelope
 from app.schemas.irrigation import IrrigationLogCreate, IrrigationLogOut
 from app.services.advisory_service import next_irrigation_estimate
-from app.services.ownership import get_owned_crop_cycle
+from app.services.ownership import get_owned_crop_cycle, get_owned_farm
 
 router = APIRouter(tags=["irrigation"])
 
@@ -37,6 +38,32 @@ def list_irrigation(crop_id: UUID, user: User = Depends(get_current_user), db: S
         .all()
     )
     return Envelope(data=[IrrigationLogOut.model_validate(l) for l in logs])
+
+
+@router.get("/farms/{farm_id}/irrigation", response_model=Envelope[list[IrrigationLogOut]])
+def list_farm_irrigation(farm_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    farm = get_owned_farm(db, farm_id, user.id)
+    logs = (
+        db.query(IrrigationLog)
+        .join(CropCycle, IrrigationLog.crop_cycle_id == CropCycle.id)
+        .filter(CropCycle.farm_id == farm.id)
+        .order_by(IrrigationLog.date.desc())
+        .all()
+    )
+    return Envelope(data=[IrrigationLogOut.model_validate(l) for l in logs])
+
+
+@router.delete("/crops/{crop_id}/irrigation/{log_id}", response_model=Envelope[None])
+def delete_irrigation(
+    crop_id: UUID, log_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    crop = get_owned_crop_cycle(db, crop_id, user.id)
+    log = db.query(IrrigationLog).filter(IrrigationLog.id == log_id, IrrigationLog.crop_cycle_id == crop.id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Irrigation log not found.")
+    db.delete(log)
+    db.commit()
+    return Envelope(message="Irrigation log deleted.")
 
 
 @router.get("/crops/{crop_id}/irrigation/next", response_model=Envelope[dict])

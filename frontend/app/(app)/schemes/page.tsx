@@ -32,6 +32,7 @@ import type {
   SchemeExplainResult,
   SchemeMatchDetails,
 } from "@/lib/types";
+import { useTranslation } from "@/lib/i18n";
 
 const CATEGORIES = [
   "All",
@@ -65,6 +66,7 @@ const STATES = [
 
 export default function SchemesPage() {
   const api = useApi();
+  const { t } = useTranslation();
   const { selectedFarm } = useFarms();
 
   const [activeTab, setActiveTab] = useState<"recommended" | "all">("recommended");
@@ -189,7 +191,7 @@ export default function SchemesPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-primary-900">
-              Government Scheme Navigator
+              {t("schemes.title")}
             </h1>
             <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
               <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
@@ -197,8 +199,7 @@ export default function SchemesPage() {
             </span>
           </div>
           <p className="mt-1 text-sm text-primary-600">
-            Official government schemes from myScheme, Ministry of Agriculture & State Portals.
-            Deterministic matching based on your farm profile — no invented claims.
+            {t("schemes.subtitle")}
           </p>
         </div>
 

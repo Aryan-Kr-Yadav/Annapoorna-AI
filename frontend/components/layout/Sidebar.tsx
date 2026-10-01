@@ -81,7 +81,7 @@ export function Sidebar({
               <Sprout className="h-5 w-5" />
             </div>
             {!collapsed && (
-              <span className="text-base font-bold tracking-tight text-primary-950 truncate">
+              <span className="text-base font-bold tracking-tight text-primary-950 dark:text-primary-100 truncate">
                 Annapoorna AI
               </span>
             )}
@@ -93,7 +93,7 @@ export function Sidebar({
               type="button"
               onClick={onToggleCollapse}
               aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-              className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg border border-primary-200 text-primary-500 hover:bg-primary-50 hover:text-primary-800 transition"
+              className="hidden md:flex h-7 w-7 items-center justify-center rounded-lg border border-primary-200 dark:border-primary-800 text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/40 hover:text-primary-800 dark:hover:text-primary-200 transition"
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
@@ -106,7 +106,7 @@ export function Sidebar({
               type="button"
               onClick={onCloseMobile}
               aria-label="Close navigation menu"
-              className="flex md:hidden h-8 w-8 items-center justify-center rounded-lg text-primary-500 hover:bg-primary-50"
+              className="flex md:hidden h-8 w-8 items-center justify-center rounded-lg text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/40"
             >
               <X className="h-5 w-5" />
             </button>
@@ -129,11 +129,11 @@ export function Sidebar({
                   collapsed ? "justify-center" : "gap-3",
                   active
                     ? "bg-primary-600 text-white shadow-sm shadow-primary-200"
-                    : "text-primary-700 hover:bg-primary-50 hover:text-primary-900"
+                    : "text-primary-700 dark:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-900 dark:hover:text-primary-100"
                 )}
               >
                 <item.icon
-                  className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", active ? "text-white" : "text-primary-600")}
+                  className={cn("h-4 w-4 shrink-0 transition-transform group-hover:scale-110", active ? "text-white" : "text-primary-600 dark:text-primary-400")}
                   strokeWidth={2}
                 />
                 {!collapsed && <span className="truncate">{label}</span>}
@@ -144,7 +144,7 @@ export function Sidebar({
       </div>
 
       {/* Footer / User Profile & Settings */}
-      <div className="border-t border-primary-100 p-3 space-y-2">
+      <div className="border-t border-primary-100 dark:border-primary-900/40 p-3 space-y-2">
         <Link
           href="/settings"
           onClick={onCloseMobile}
@@ -153,8 +153,8 @@ export function Sidebar({
             "flex items-center rounded-xl px-3 py-2 text-sm font-medium transition",
             collapsed ? "justify-center" : "gap-2.5",
             pathname?.startsWith("/settings")
-              ? "bg-primary-100 text-primary-900 font-semibold"
-              : "text-primary-600 hover:bg-primary-50 hover:text-primary-900"
+              ? "bg-primary-100 dark:bg-primary-900/60 text-primary-900 dark:text-primary-100 font-semibold"
+              : "text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 hover:text-primary-900 dark:hover:text-primary-100"
           )}
         >
           <Settings className="h-4 w-4 shrink-0" />
@@ -163,15 +163,15 @@ export function Sidebar({
 
         <div className={cn("flex items-center pt-1", collapsed ? "justify-center" : "justify-between gap-2")}>
           <div className="flex min-w-0 items-center gap-2">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100 text-xs font-bold text-primary-800">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/50 text-xs font-bold text-primary-800 dark:text-primary-200">
               {(user?.name || user?.full_name || user?.email || "U").charAt(0).toUpperCase()}
             </div>
             {!collapsed && (
               <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-primary-900">
+                <p className="truncate text-xs font-semibold text-primary-900 dark:text-primary-100">
                   {user?.name || user?.full_name || "Farmer"}
                 </p>
-                <p className="truncate text-[10px] text-primary-500">
+                <p className="truncate text-[10px] text-primary-500 dark:text-primary-400">
                   {user?.email}
                 </p>
               </div>
@@ -182,7 +182,7 @@ export function Sidebar({
             onClick={logout}
             aria-label={t("nav.logout", "Log out")}
             title={t("nav.logout", "Log out")}
-            className="rounded-lg p-1.5 text-primary-400 hover:bg-red-50 hover:text-red-600 transition"
+            className="rounded-lg p-1.5 text-primary-400 hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-600 dark:hover:text-red-400 transition"
           >
             <LogOut className="h-4 w-4" />
           </button>
@@ -196,7 +196,7 @@ export function Sidebar({
       {/* Desktop Sidebar */}
       <aside
         className={cn(
-          "hidden md:flex flex-col border-r border-primary-100 bg-white transition-all duration-300 ease-in-out shrink-0 sticky top-0 h-screen z-20",
+          "hidden md:flex flex-col border-r border-primary-100 dark:border-primary-900/40 bg-white dark:bg-[#121911] transition-all duration-300 ease-in-out shrink-0 sticky top-0 h-screen z-20",
           collapsed ? "w-20" : "w-60"
         )}
       >
@@ -221,7 +221,7 @@ export function Sidebar({
           {/* Drawer content */}
           <div
             ref={drawerRef}
-            className="relative z-50 h-full w-72 max-w-[85vw] bg-white shadow-2xl animate-in slide-in-from-left duration-250 ease-out"
+            className="relative z-50 h-full w-72 max-w-[85vw] bg-white dark:bg-[#121911] shadow-2xl animate-in slide-in-from-left duration-250 ease-out border-r border-primary-100 dark:border-primary-900/40"
           >
             {navContent}
           </div>

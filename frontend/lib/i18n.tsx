@@ -3,66 +3,21 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useApi } from "@/lib/api-client";
 
+import enDict from "@/locales/en.json";
+import hiDict from "@/locales/hi.json";
+
 type Language = "en" | "hi";
 
-interface TranslationDictionary {
-  [key: string]: {
-    en: string;
-    hi: string;
-  };
+function getNestedValue(obj: any, path: string): string | undefined {
+  if (!obj || typeof obj !== "object") return undefined;
+  const parts = path.split(".");
+  let curr = obj;
+  for (const part of parts) {
+    if (curr === undefined || curr === null) return undefined;
+    curr = curr[part];
+  }
+  return typeof curr === "string" ? curr : undefined;
 }
-
-const DICTIONARY: TranslationDictionary = {
-  // Navigation
-  "nav.dashboard": { en: "Dashboard", hi: "डैशबोर्ड" },
-  "nav.farms": { en: "My Farms", hi: "मेरे खेत" },
-  "nav.assistant": { en: "Annapoorna AI", hi: "अन्नपूर्णा AI" },
-  "nav.crop_doctor": { en: "Crop Doctor", hi: "क्रॉप डॉक्टर" },
-  "nav.weather": { en: "Weather", hi: "मौसम" },
-  "nav.schemes": { en: "Schemes", hi: "सरकारी योजनाएं" },
-  "nav.market": { en: "Market", hi: "मंडी भाव" },
-  "nav.analytics": { en: "Analytics", hi: "विश्लेषण" },
-  "nav.crop_planner": { en: "Crop Planner", hi: "फसल योजना" },
-  "nav.settings": { en: "Settings", hi: "सेटिंग्स" },
-  "nav.logout": { en: "Log out", hi: "लॉग आउट" },
-
-  // Context & Selectors
-  "context.select_farm": { en: "Select Farm", hi: "खेत चुनें" },
-  "context.select_crop": { en: "Select Crop", hi: "फसल चुनें" },
-  "context.active_farm": { en: "Active Farm", hi: "सक्रिय खेत" },
-  "context.active_crop": { en: "Active Crop", hi: "सक्रिय फसल" },
-  "context.general_mode": { en: "General Mode", hi: "सामान्य मोड" },
-  "context.using": { en: "Using", hi: "सक्रिय" },
-
-  // Common UI
-  "common.save": { en: "Save", hi: "सहेजें" },
-  "common.saving": { en: "Saving...", hi: "सहेजा जा रहा है..." },
-  "common.saved": { en: "Saved.", hi: "सहेजा गया।" },
-  "common.cancel": { en: "Cancel", hi: "रद्द करें" },
-  "common.delete": { en: "Delete", hi: "हटाएं" },
-  "common.close": { en: "Close", hi: "बंद करें" },
-  "common.view_details": { en: "View Details", hi: "विवरण देखें" },
-  "common.all": { en: "All", hi: "सभी" },
-  "common.low": { en: "Low", hi: "कम" },
-  "common.medium": { en: "Moderate", hi: "मध्यम" },
-  "common.high": { en: "High", hi: "उच्च" },
-
-  // Dashboard
-  "dash.active_crops": { en: "Active Crops", hi: "सक्रिय फसलें" },
-  "dash.todays_tasks": { en: "Today's Tasks", hi: "आज के कार्य" },
-  "dash.irrigation": { en: "Irrigation", hi: "सिंचाई" },
-  "dash.weather_intel": { en: "Weather Intelligence", hi: "मौसम विश्लेषण" },
-  "dash.season_expenses": { en: "Season Expenses", hi: "सीजन खर्च" },
-  "dash.recent_inspections": { en: "Recent Health Inspections", hi: "हालिया फसल निरीक्षण" },
-
-  // Settings
-  "settings.title": { en: "Settings", hi: "सेटिंग्स" },
-  "settings.general": { en: "General", hi: "सामान्य" },
-  "settings.farm_prefs": { en: "Farm Preferences", hi: "खेत प्राथमिकताएं" },
-  "settings.ai_assistant": { en: "AI Assistant", hi: "AI सहायक" },
-  "settings.notifications": { en: "Notifications", hi: "सूचनाएं" },
-  "settings.account": { en: "Account & Security", hi: "खाता और सुरक्षा" },
-};
 
 interface LanguageContextValue {
   language: Language;
@@ -115,11 +70,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   const t = (key: string, fallback?: string): string => {
-    const entry = DICTIONARY[key];
-    if (entry && entry[language]) {
-      return entry[language];
+    const dict = language === "hi" ? hiDict : enDict;
+    const val = getNestedValue(dict, key);
+    if (val !== undefined) return val;
+    if (language !== "en") {
+      const enVal = getNestedValue(enDict, key);
+      if (enVal !== undefined) return enVal;
     }
-    return fallback || entry?.en || key;
+    return fallback || key;
   };
 
   return (

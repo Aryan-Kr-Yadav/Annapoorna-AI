@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -87,7 +89,12 @@ def record_crop_sale(
     )
     db.add(sale)
 
-    crop.status = CropCycleStatus.SOLD
+    # Update crop status: if all harvested produce is sold, mark SOLD; else remain HARVESTED
+    if total_harvested > 0 and (remaining - float(payload.quantity_sold)) <= 0.01:
+        crop.status = CropCycleStatus.SOLD
+    else:
+        crop.status = CropCycleStatus.HARVESTED
+
     db.commit()
     db.refresh(sale)
 
@@ -119,6 +126,39 @@ def get_crop_sales_summary(
         sales=[CropSaleOut.model_validate(s) for s in sales],
     )
     return Envelope(data=summary)
+
+
+@router.delete("/crops/{crop_id}/harvests/{harvest_id}", response_model=Envelope[None])
+def delete_harvest(
+    crop_id: UUID, harvest_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    crop = get_owned_crop_cycle(db, crop_id, user.id)
+    harvest = db.query(Harvest).filter(Harvest.id == harvest_id, Harvest.crop_cycle_id == crop.id).first()
+    if not harvest:
+        raise HTTPException(status_code=404, detail="Harvest record not found.")
+    db.delete(harvest)
+    remaining_harvests = db.query(Harvest).filter(Harvest.crop_cycle_id == crop.id, Harvest.id != harvest_id).count()
+    if remaining_harvests == 0:
+        crop.status = CropCycleStatus.ACTIVE
+        crop.actual_harvest_date = None
+    db.commit()
+    return Envelope(message="Harvest record deleted.")
+
+
+@router.delete("/crops/{crop_id}/sales/{sale_id}", response_model=Envelope[None])
+def delete_crop_sale(
+    crop_id: UUID, sale_id: UUID, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    crop = get_owned_crop_cycle(db, crop_id, user.id)
+    sale = db.query(CropSale).filter(CropSale.id == sale_id, CropSale.crop_cycle_id == crop.id).first()
+    if not sale:
+        raise HTTPException(status_code=404, detail="Crop sale record not found.")
+    db.delete(sale)
+    remaining_harvests = db.query(Harvest).filter(Harvest.crop_cycle_id == crop.id).count()
+    if remaining_harvests > 0:
+        crop.status = CropCycleStatus.HARVESTED
+    db.commit()
+    return Envelope(message="Crop sale record deleted.")
 
 
 @router.get("/crops/{crop_id}/season-report", response_model=Envelope[SeasonReportOut])
