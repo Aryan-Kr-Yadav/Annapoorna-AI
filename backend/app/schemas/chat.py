@@ -27,7 +27,7 @@ class ChatSessionOut(IDTimestamped):
 
 
 class ChatMessageCreate(BaseModel):
-    content: str
+    content: Optional[str] = ""
     image_url: Optional[str] = None
 
 

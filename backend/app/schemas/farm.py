@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 
 from app.models.farm import AreaUnit, IrrigationType
 from app.schemas.common import IDTimestamped
@@ -47,3 +47,8 @@ class FarmOut(IDTimestamped):
     latitude: Optional[float]
     longitude: Optional[float]
     is_archived: bool
+
+    @computed_field
+    @property
+    def short_id(self) -> str:
+        return str(self.id).replace("-", "")[:6].upper()

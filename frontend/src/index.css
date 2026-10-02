@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Natural, grounded agricultural palette - Light Theme */
+    --background: #f8f9f6;
+    --surface: #ffffff;
+    --surface-secondary: #f2f5ef;
+    --surface-tertiary: #e7ece2;
+    --foreground: #152216;
+    --foreground-muted: #536454;
+    --border: #e2e8de;
+    --border-subtle: #edf1ea;
+    
+    /* Primary Agricultural Green */
+    --primary: #2d5a27;
+    --primary-hover: #24481f;
+    --primary-light: #eaf3e7;
+    --primary-foreground: #ffffff;
+    
+    /* Earth & Crop Golden Accents */
+    --accent-wheat: #c98a2c;
+    --accent-wheat-light: #fbf4ea;
+    --accent-soil: #795548;
+    
+    /* Semantic Status */
+    --success: #2e7d32;
+    --success-light: #edf7ed;
+    --warning: #d97706;
+    --warning-light: #fffbeb;
+    --danger: #dc2626;
+    --danger-light: #fef2f2;
+    --info: #0284c7;
+    --info-light: #f0f9ff;
+  }
+
+  .dark {
+    /* Deep charcoal/forest - Dark Theme */
+    --background: #0b130e;
+    --surface: #121c15;
+    --surface-secondary: #17241b;
+    --surface-tertiary: #1e3024;
+    --foreground: #f2f6f3;
+    --foreground-muted: #94a596;
+    --border: #203425;
+    --border-subtle: #17271c;
+    
+    /* Primary Green in Dark Mode */
+    --primary: #4c8b41;
+    --primary-hover: #5ba34f;
+    --primary-light: #16291a;
+    --primary-foreground: #ffffff;
+    
+    /* Earth & Crop Golden Accents */
+    --accent-wheat: #d49a3d;
+    --accent-wheat-light: #261f14;
+    --accent-soil: #9c6f5e;
+    
+    /* Semantic Status */
+    --success: #4caf50;
+    --success-light: #132715;
+    --warning: #f59e0b;
+    --warning-light: #2b200b;
+    --danger: #ef4444;
+    --danger-light: #291212;
+    --info: #38bdf8;
+    --info-light: #0c2333;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Plus Jakarta Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Surface container cards */
+  .card {
+    @apply rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xs transition;
+  }
+
+  .card-hover {
+    @apply card hover:border-primary-400 hover:shadow-sm dark:hover:border-primary-700/60;
+  }
+
+  /* Primary Button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--primary)] px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-xs transition hover:bg-[var(--primary-hover)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer;
+  }
+
+  /* Secondary Button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--surface-secondary)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer;
+  }
+
+  /* Outline Button */
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-transparent px-3.5 py-1.5 text-xs sm:text-sm font-semibold text-[var(--foreground-muted)] transition hover:text-[var(--foreground)] hover:border-[var(--foreground-muted)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer;
+  }
+
+  /* Standard Input */
+  .input {
+    @apply block w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-xs sm:text-sm text-[var(--foreground)] shadow-2xs transition placeholder:text-[var(--foreground-muted)] focus:border-[var(--primary)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)];
+  }
+
+  /* Form Labels */
+  .label {
+    @apply mb-1.5 block text-xs font-semibold text-[var(--foreground-muted)];
+  }
+
+  /* Status Badges */
+  .badge-natural {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-2xs font-semibold bg-[var(--surface-secondary)] text-[var(--foreground-muted)] border border-[var(--border)];
+  }
+
+  .badge-primary {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-2xs font-semibold bg-primary-100 text-primary-900 border border-primary-200 dark:bg-primary-950/50 dark:text-primary-300 dark:border-primary-900/60;
+  }
+
+  .badge-wheat {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-2xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-900/60;
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply rounded-full bg-slate-300 dark:bg-[#1e3627];
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400 dark:bg-[#2b4c37];
+}

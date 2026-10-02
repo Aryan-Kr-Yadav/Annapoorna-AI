@@ -12,11 +12,11 @@ import base64
 import json
 import logging
 import re
-from typing import List, Optional
+from typing import Any, List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
 from app.ai.service import ai_service, AIConfigError, AIResponseError
@@ -48,16 +48,51 @@ class VisualObservationsOutput(BaseModel):
     visual_hypothesis: str = "No obvious disease or pest pattern visible"
     uncertainty_notes: Optional[str] = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_visual(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        for field in ["visual_symptoms", "affected_parts"]:
+            val = data.get(field)
+            if isinstance(val, str):
+                data[field] = [s.strip("- •* ") for s in re.split(r"[,;\n]+", val) if s.strip()]
+            elif val is None:
+                data[field] = []
+        return data
+
 
 # Pydantic schema for Stage 2: Final Agronomic Analysis synthesized by GPT-OSS 120B
 class DiagnosisSummaryOutput(BaseModel):
-    possible_condition: str
-    severity: str  # low | medium | high | unknown
+    possible_condition: str = "Condition Identified"
+    severity: str = "medium"  # low | medium | high | unknown
     confidence_percentage: Optional[float] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_summary(cls, data: Any) -> Any:
+        if isinstance(data, str):
+            return {"possible_condition": data, "severity": "medium", "confidence_percentage": None}
+        if isinstance(data, dict):
+            cond = (
+                data.get("possible_condition")
+                or data.get("condition")
+                or data.get("diagnosis")
+                or data.get("disease")
+                or "Condition Identified"
+            )
+            sev = data.get("severity") or data.get("apparent_severity") or "medium"
+            conf = data.get("confidence_percentage")
+            return {
+                "possible_condition": str(cond),
+                "severity": str(sev).lower(),
+                "confidence_percentage": conf if isinstance(conf, (int, float)) else None,
+            }
+        return data
 
 
 class CropDoctorAnalysisOutput(BaseModel):
-    summary: DiagnosisSummaryOutput
+    summary: DiagnosisSummaryOutput = Field(default_factory=DiagnosisSummaryOutput)
     observations: List[str] = Field(default_factory=list)
     possible_causes: List[str] = Field(default_factory=list)
     immediate_actions: List[str] = Field(default_factory=list)
@@ -66,6 +101,72 @@ class CropDoctorAnalysisOutput(BaseModel):
     monitoring: str = "Re-inspect leaf symptoms in 2-3 days."
     when_to_seek_expert_help: str = "Consult local Krishi Vigyan Kendra or extension officer if symptoms worsen."
     disclaimer: str = "This automated analysis is for decision support only and does not substitute for on-field laboratory diagnosis."
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+
+        # 1. Normalize summary / diagnosis
+        if "summary" in data:
+            pass  # Handled by DiagnosisSummaryOutput validator
+        elif "diagnosis" in data:
+            data["summary"] = {
+                "possible_condition": str(data.get("diagnosis")),
+                "severity": str(data.get("severity") or "medium"),
+            }
+        elif "possible_condition" in data:
+            data["summary"] = {
+                "possible_condition": str(data.get("possible_condition")),
+                "severity": str(data.get("severity") or "medium"),
+            }
+        elif "condition" in data:
+            data["summary"] = {
+                "possible_condition": str(data.get("condition")),
+                "severity": str(data.get("severity") or "medium"),
+            }
+        else:
+            data["summary"] = {
+                "possible_condition": "Crop Condition Identified",
+                "severity": "medium",
+            }
+
+        # 2. Normalize list fields from alternative keys
+        if not data.get("possible_causes"):
+            cause = data.get("probable_cause") or data.get("causes") or data.get("cause")
+            if cause:
+                data["possible_causes"] = [cause] if isinstance(cause, str) else list(cause)
+
+        if not data.get("immediate_actions"):
+            actions = (
+                data.get("recommended_actions")
+                or data.get("actions")
+                or data.get("immediate_action")
+                or data.get("recommendation")
+            )
+            if actions:
+                data["immediate_actions"] = [actions] if isinstance(actions, str) else list(actions)
+
+        if not data.get("treatment_options"):
+            treatments = data.get("treatment") or data.get("treatments") or data.get("cure")
+            if treatments:
+                data["treatment_options"] = [treatments] if isinstance(treatments, str) else list(treatments)
+
+        if not data.get("prevention"):
+            prev = data.get("preventative_measures") or data.get("prevention_tips") or data.get("preventive_measures")
+            if prev:
+                data["prevention"] = [prev] if isinstance(prev, str) else list(prev)
+
+        # 3. Ensure all list fields are indeed lists
+        for field in ["observations", "possible_causes", "immediate_actions", "treatment_options", "prevention"]:
+            val = data.get(field)
+            if isinstance(val, str):
+                data[field] = [s.strip("- •* ") for s in val.split("\n") if s.strip()]
+            elif val is None:
+                data[field] = []
+
+        return data
 
 
 @router.post("/crops/{crop_id}/diagnoses", response_model=Envelope[DiagnosisOut])

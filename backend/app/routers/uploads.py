@@ -39,8 +39,10 @@ async def upload_image(
     if target_file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(status_code=400, detail="Please upload a JPG, PNG, or WebP image.")
     contents = await target_file.read()
+    if not contents or len(contents) == 0:
+        raise HTTPException(status_code=400, detail="Uploaded image is empty (0 bytes). Please select a valid photo.")
     if len(contents) > MAX_IMAGE_BYTES:
-        raise HTTPException(status_code=400, detail="Image is too large (max 5MB).")
+        raise HTTPException(status_code=400, detail="Image is too large (max 5MB). Please upload a smaller photo.")
 
     # Validate and optimize image dimensions and payload size for AI vision processing
     try:

@@ -46,24 +46,25 @@ class AIResponseError(Exception):
 def classify_ai_error(status_code: int, err_detail: str) -> tuple[str, str]:
     """
     Returns (user_safe_message, error_category).
-    Never exposes internal API keys or tracebacks to users.
+    Never exposes internal API keys, tracebacks, or raw JSON to users.
+    Categorizes errors into standard user-friendly types without blaming the user.
     """
     detail_lower = err_detail.lower()
-    
+
     if status_code == 429 or "rate limit" in detail_lower or "tokens" in detail_lower:
         return (
-            "AI usage limit reached temporarily. Please try again in a few moments.",
+            "AI usage limit reached temporarily. Please try again shortly.",
             "rate_limit"
         )
     if status_code == 400:
-        if "must be a string" in detail_lower or "image" in detail_lower or "media" in detail_lower:
+        if "must be a string" in detail_lower or "image" in detail_lower or "media" in detail_lower or "pixel" in detail_lower:
             return (
-                "Unable to process media with the requested reasoning model. Please ensure photos are valid format.",
-                "invalid_multimodal_request"
+                "Unable to analyze this image. Please upload a clear photo in JPG, PNG, or WebP format.",
+                "image_error"
             )
         return (
-            "The request was malformed. Please try rephrasing your message.",
-            "bad_request"
+            "Something in the request could not be processed. Please try again.",
+            "invalid_request"
         )
     if status_code == 401 or "api key" in detail_lower or "unauthorized" in detail_lower:
         return (
@@ -87,12 +88,12 @@ def classify_ai_error(status_code: int, err_detail: str) -> tuple[str, str]:
         )
     if status_code >= 500:
         return (
-            "The AI provider is experiencing temporary high traffic. Please try again shortly.",
-            "provider_server_error"
+            "Something went wrong while processing your request. Please try again shortly.",
+            "server_error"
         )
     return (
-        "AI service encountered an issue processing your request. Please try again in a moment.",
-        "unknown_error"
+        "Something went wrong while processing your request. Please try again in a moment.",
+        "server_error"
     )
 
 
@@ -177,12 +178,12 @@ class AIService:
             status = exc.response.status_code
             safe_msg, cat = classify_ai_error(status, err_detail)
 
-            # Check if text model fallback is viable on 404, 5xx, or model permission
+            # Check if text model fallback is viable on 404, 429, 5xx, or model error
             current_model = payload.get("model", "")
             is_text_request = current_model == text_model and not message_has_image(payload.get("messages", []))
-            if is_text_request and fallback_model and fallback_model != current_model and status in (404, 500, 502, 503, 504):
+            if is_text_request and fallback_model and fallback_model != current_model and status in (404, 429, 500, 502, 503, 504):
                 logger.warning(
-                    "Primary model %s failed with status %d (%s). Attempting fallback to %s",
+                    "Primary text model %s failed with status %d (%s). Attempting seamless fallback to %s",
                     current_model, status, err_detail, fallback_model
                 )
                 fallback_payload = dict(payload)
@@ -288,13 +289,11 @@ class AIService:
         validated with the given Pydantic schema.
         """
         model = self.select_model(has_image=False)
-        schema_props = json.dumps(schema.model_json_schema().get("properties", {}), indent=2)
+        schema_props = json.dumps(schema.model_json_schema(), indent=2)
         json_instruction = (
-            f"You MUST respond strictly with a valid JSON object containing these keys and types:\n{schema_props}"
+            f"You MUST respond strictly with a valid JSON object matching this JSON Schema specification:\n{schema_props}"
         )
-        combined_text = (prompt or "") + " " + (system_prompt or "") + " " + " ".join(str(m.get("content", "")) for m in (messages or []))
-        if "json" not in combined_text.lower() or schema.__name__ not in combined_text:
-            prompt = f"{prompt or ''}\n\n{json_instruction}".strip()
+        prompt = f"{prompt or ''}\n\n{json_instruction}".strip()
 
         formatted_messages = []
         if system_prompt:
@@ -376,8 +375,9 @@ class AIService:
         Visual analysis returning validated Pydantic schema using qwen/qwen3.8-27b.
         """
         model = self.select_model(has_image=True)
+        schema_props = json.dumps(schema.model_json_schema(), indent=2)
         json_instruction = (
-            "\n\nYou MUST respond ONLY with a single valid JSON object matching the requested schema. "
+            f"\n\nYou MUST respond ONLY with a single valid JSON object matching this JSON Schema specification:\n{schema_props}\n"
             "Do not include markdown ticks, extra commentary, or conversational text."
         )
         messages = [

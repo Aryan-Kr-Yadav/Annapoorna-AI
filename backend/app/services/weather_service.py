@@ -67,23 +67,64 @@ def compute_weather_intelligence(data: dict) -> dict:
     wind = current.get("wind_speed_kmh") or 10
     pop_tomorrow = tomorrow.get("rain_probability_percent", 0)
 
-    # 1. Farming Condition Score
-    if (temp and temp >= 38) or (wind and wind >= 25) or pop_tomorrow >= 65:
-        score = "CAUTION"
-        reasons = []
-        if temp and temp >= 38: reasons.append(f"high temperature ({temp:.0f}°C)")
-        if wind and wind >= 25: reasons.append(f"strong winds ({wind:.0f} km/h)")
-        if pop_tomorrow >= 65: reasons.append(f"high rain probability tomorrow ({pop_tomorrow}%)")
-        score_desc = f"Caution advised today due to {', '.join(reasons)}."
-    elif (temp and temp >= 33) or (humidity and humidity >= 75) or pop_tomorrow >= 35:
-        score = "MODERATE"
-        reasons = []
-        if humidity and humidity >= 75: reasons.append(f"high humidity ({humidity}%)")
-        if pop_tomorrow >= 35: reasons.append(f"moderate rain chance tomorrow ({pop_tomorrow}%)")
+    # 1. Farming Condition Score (Numeric 0-100 Composite & Qualitative Classification)
+    # Deductions based on chemical drift (wind), precipitation risk (pop_tomorrow), and heat/cold/evapotranspiration stress (temp, humidity)
+    penalties = 0.0
+    reasons = []
+    if wind and wind > 12:
+        drift_penalty = min(25.0, (wind - 12) * 1.5)
+        penalties += drift_penalty
+        if wind >= 20:
+            reasons.append(f"strong winds ({wind:.0f} km/h)")
+    if pop_tomorrow and pop_tomorrow > 20:
+        rain_penalty = min(25.0, (pop_tomorrow - 20) * 0.4)
+        penalties += rain_penalty
+        if pop_tomorrow >= 40:
+            reasons.append(f"rain probability ({pop_tomorrow}%)")
+    if temp:
+        if temp > 30:
+            temp_penalty = min(25.0, (temp - 30) * 2.0)
+            penalties += temp_penalty
+            if temp >= 35:
+                reasons.append(f"high temperature ({temp:.0f}°C)")
+        elif temp < 16:
+            cold_penalty = min(20.0, (16 - temp) * 2.0)
+            penalties += cold_penalty
+            if temp <= 10:
+                reasons.append(f"cold temperature ({temp:.0f}°C)")
+    if humidity:
+        if humidity > 70:
+            hum_penalty = min(15.0, (humidity - 70) * 0.4)
+            penalties += hum_penalty
+            if humidity >= 80:
+                reasons.append(f"high humidity ({humidity}%)")
+        elif humidity < 30:
+            penalties += min(10.0, (30 - humidity) * 0.3)
+
+    numeric_score = max(15, min(98, round(100.0 - penalties)))
+
+    # Classification conforming to standardized scale:
+    # 0-39: Poor, 40-59: Fair, 60-74: Moderate, 75-89: Good, 90-100: Excellent
+    if numeric_score <= 39:
+        score_label = "Poor"
+        score_status = "CAUTION"
+        score_desc = f"Challenging farming conditions today due to {', '.join(reasons) if reasons else 'severe weather factors'}."
+    elif numeric_score <= 59:
+        score_label = "Fair"
+        score_status = "CAUTION"
+        score_desc = f"Caution advised today due to {', '.join(reasons) if reasons else 'unfavorable micro-climate'}."
+    elif numeric_score <= 74:
+        score_label = "Moderate"
+        score_status = "MODERATE"
         score_desc = f"Moderate farming conditions today ({', '.join(reasons) if reasons else 'mild weather changes'})."
+    elif numeric_score <= 89:
+        score_label = "Good"
+        score_status = "GOOD"
+        score_desc = "Favorable farming conditions today with manageable temperature and wind."
     else:
-        score = "GOOD"
-        score_desc = "Favorable farming conditions today with mild temperature and manageable wind."
+        score_label = "Excellent"
+        score_status = "GOOD"
+        score_desc = "Optimal agronomic conditions today for spraying, irrigation, and field work."
 
     # 2. Rain & Irrigation Advisory
     if pop_tomorrow >= 60:
@@ -135,7 +176,9 @@ def compute_weather_intelligence(data: dict) -> dict:
     ]
 
     return {
-        "farming_condition_score": score,
+        "farming_condition_score": numeric_score,
+        "farming_condition_label": score_label,
+        "farming_condition_rating": score_status,
         "score_description": score_desc,
         "rain_advisory": rain_advisory,
         "disease_risk": disease_risk,
@@ -322,6 +365,11 @@ class WeatherService:
 
 weather_service = WeatherService()
 
+_WEATHER_CACHE: dict[str, tuple[float, dict]] = {}
+_GEO_CACHE: dict[str, tuple[float, tuple[float, float]]] = {}
+WEATHER_CACHE_TTL = 900  # 15 minutes
+GEO_CACHE_TTL = 86400    # 24 hours
+
 
 async def get_current_and_forecast(
     latitude: Optional[float],
@@ -329,20 +377,43 @@ async def get_current_and_forecast(
     district: str,
     state: str
 ) -> dict:
+    import time
+
     if latitude is None or longitude is None:
-        coords = await weather_service.geocode(district, state)
-        if coords:
-            latitude, longitude = coords
-        else:
-            return {
-                "available": False,
-                "message": f"Weather information is temporarily unavailable for {district or state or 'this location'}.",
-            }
+        cache_key = f"{(district or '').strip().lower()}:{(state or '').strip().lower()}"
+        if cache_key and cache_key in _GEO_CACHE:
+            cached_time, cached_coords = _GEO_CACHE[cache_key]
+            if time.time() - cached_time < GEO_CACHE_TTL:
+                latitude, longitude = cached_coords
+
+        if latitude is None or longitude is None:
+            coords = await weather_service.geocode(district, state)
+            if coords:
+                latitude, longitude = coords
+                if cache_key:
+                    _GEO_CACHE[cache_key] = (time.time(), coords)
+            else:
+                return {
+                    "available": False,
+                    "message": f"Weather information is temporarily unavailable for {district or state or 'this location'}.",
+                }
+
+    coord_key = f"{round(latitude, 2)}:{round(longitude, 2)}"
+    now = time.time()
+    if coord_key in _WEATHER_CACHE:
+        cached_time, cached_data = _WEATHER_CACHE[coord_key]
+        if now - cached_time < WEATHER_CACHE_TTL:
+            return cached_data
 
     try:
-        return await weather_service.get_weather(latitude, longitude)
+        data = await weather_service.get_weather(latitude, longitude)
+        if data and data.get("available"):
+            _WEATHER_CACHE[coord_key] = (now, data)
+        return data
     except Exception as e:
         logger.error("Failed to fetch weather from Open-Meteo: %s", e)
+        if coord_key in _WEATHER_CACHE:
+            return _WEATHER_CACHE[coord_key][1]
         return {
             "available": False,
             "message": "Weather information is temporarily unavailable. Please try again shortly.",

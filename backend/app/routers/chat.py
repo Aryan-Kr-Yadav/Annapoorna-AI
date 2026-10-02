@@ -144,133 +144,157 @@ async def send_message(
 ):
     session = _get_owned_session(db, session_id, user.id)
 
+    # 1. Normalize user content
+    raw_content = (payload.content or "").strip()
+    if not raw_content and payload.image_url:
+        user_display_content = "Analyze this crop image and describe visible agricultural observations."
+    else:
+        user_display_content = raw_content or "Hello"
+
     user_message = ChatMessage(
-        session_id=session.id, role=ChatRole.USER, content=payload.content, image_url=payload.image_url
+        session_id=session.id, role=ChatRole.USER, content=user_display_content, image_url=payload.image_url
     )
     db.add(user_message)
     db.commit()
 
     # --- Build bounded context with intelligent query routing ---
-    farm_context = build_farm_crop_context(db, user, session.farm_id, session.crop_cycle_id, query_text=payload.content)
-    rag_chunks = await retrieve_relevant_chunks(db, payload.content)
+    farm_context = build_farm_crop_context(db, user, session.farm_id, session.crop_cycle_id, query_text=user_display_content)
+    rag_chunks = await retrieve_relevant_chunks(db, user_display_content)
 
     # Language and style directives
     user_prefs = user.preferences or {}
     assistant_lang = user_prefs.get("assistant_language", "auto")
     assistant_style = user_prefs.get("assistant_style", "balanced")
-    
-    from app.ai.prompts import get_language_directive, get_style_directive
-    style_directive = get_language_directive(assistant_lang, payload.content) + get_style_directive(assistant_style)
 
-    if session.farm_id and farm_context:
-        context_block = build_context_block(farm_context)
-    else:
-        context_block = "[CONTEXT MODE: General Knowledge & Farming Science. Answering conceptual question directly.]"
-
-    system_content = SYSTEM_PROMPT + style_directive + "\n\n" + context_block
-    if session.summary:
-        system_content += f"\n\nSummary of earlier conversation: {session.summary}"
-    if rag_chunks:
-        sources_block = "\n".join(f"- {c['content']} (source: {c['source_title']})" for c in rag_chunks)
-        system_content += f"\n\nRelevant knowledge base excerpts:\n{sources_block}"
-
-    # If the user uploaded an image in this turn, perform Stage 1 visual analysis using Qwen Vision
-    # before passing synthesized visual observations to GPT-OSS 120B reasoning.
-    visual_observations_text = None
-    if payload.image_url:
-        try:
-            vision_query = payload.content or "Analyze plant health, leaf symptoms, or pest presence in this image."
-            crop_hint = farm_context.get("active_crop", "")
-            prompt_for_vision = (
-                f"You are the visual inspection stage for Annapoorna AI. Analyze this image thoroughly.\n"
-                f"Crop context: {crop_hint or 'Crop in Indian agriculture'}.\n"
-                f"Farmer's query: {vision_query}\n\n"
-                f"Provide concise, factual visual observations: what plant part is visible, colors, spots, lesions, pest signs, or physical damage."
-            )
-            visual_observations_text = await ai_service.analyze_image(
-                prompt=prompt_for_vision,
-                image_url=payload.image_url,
-            )
-        except Exception as vision_err:
-            logger.warning("Stage 1 visual analysis failed: %s", vision_err)
-            visual_observations_text = "Visual analysis could not extract specific features from this image."
-
-    recent_messages = (
-        db.query(ChatMessage)
-        .filter(ChatMessage.session_id == session.id, ChatMessage.role.in_([ChatRole.USER, ChatRole.ASSISTANT]))
-        .order_by(ChatMessage.created_at.desc())
-        .limit(RECENT_MESSAGE_WINDOW)
-        .all()
-    )
-    recent_messages.reverse()
-
-    messages = [{"role": "system", "content": system_content}]
-
-    # Build pure text conversation history for GPT-OSS 120B (GPT-OSS does not accept image_url blocks)
-    for m in recent_messages:
-        content_text = m.content or ""
-        if m.id == user_message.id and visual_observations_text:
-            content_text = f"{content_text}\n\n[PHOTO VISUAL OBSERVATIONS (from Vision Model)]:\n{visual_observations_text}".strip()
-        elif m.image_url:
-            content_text = f"[Attached photo from earlier turn]: {content_text}".strip()
-
-        messages.append({"role": m.role.value, "content": content_text})
+    from app.ai.prompts import get_language_directive, get_style_directive, VISION_INSPECTION_PROMPT
+    style_directive = get_language_directive(assistant_lang, user_display_content) + get_style_directive(assistant_style)
 
     tools_used: list[str] = []
     final_text = None
 
-    try:
-        for _ in range(MAX_TOOL_ROUNDS):
-            assistant_msg = await ai_service.generate_with_tools(
-                messages,
-                tools=ai_tools.TOOL_DEFINITIONS,
-                reasoning_effort="medium",
-            )
+    # ========================================================
+    # CASE 1: IMAGE CHAT REQUEST (Direct to Vision Model)
+    # ========================================================
+    if payload.image_url:
+        crop_hint = farm_context.get("active_crop", "") if farm_context else ""
+        stage_hint = farm_context.get("current_stage", "") if farm_context else ""
+        farm_name = farm_context.get("farm_name", "") if farm_context else ""
 
-            if assistant_msg.get("tool_calls"):
-                messages.append(assistant_msg)
-                for call in assistant_msg["tool_calls"]:
-                    fn_name = call["function"]["name"]
-                    try:
-                        args = json.loads(call["function"]["arguments"] or "{}")
-                    except json.JSONDecodeError:
-                        args = {}
-                    tools_used.append(fn_name)
-                    try:
-                        result = await ai_tools.execute_tool(db, user, fn_name, args)
-                    except HTTPException as exc:
-                        result = {"error": exc.detail}
-                    except Exception as exc:
-                        logger.warning("Tool %s execution failed: %s", fn_name, exc, exc_info=True)
-                        result = {"error": f"Failed to execute {fn_name}: {str(exc)}"}
-                    messages.append(
-                        {"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result, default=str)}
-                    )
-                continue
+        context_parts = []
+        if farm_name:
+            context_parts.append(f"Farm: {farm_name}")
+        if crop_hint:
+            context_parts.append(f"Crop: {crop_hint}")
+        if stage_hint:
+            context_parts.append(f"Growth Stage: {stage_hint}")
+        farm_summary = " | ".join(context_parts) if context_parts else "General Indian Agriculture"
 
-            final_text = assistant_msg.get("content", "")
-            break
-    except AIConfigError as exc:
-        logger.error("AIConfigError in chat session %s: %s", session.id, exc)
-        final_text = "AI service configuration is incomplete. Please contact your system administrator."
-    except AIResponseError as exc:
-        logger.error("AIResponseError in chat session %s: %s", session.id, exc)
-        final_text = exc.user_safe_message or (
-            "Annapoorna AI is temporarily busy. Please try again in a moment — "
-            "your message has been saved."
+        vision_prompt = (
+            f"{VISION_INSPECTION_PROMPT}\n\n"
+            f"[CONTEXT: {farm_summary}]\n"
+            f"[FARMER QUERY: {user_display_content}]\n"
+            f"{style_directive}"
         )
-    except Exception as exc:
-        logger.error("Unexpected error in chat session %s: %s", session.id, exc, exc_info=True)
-        final_text = "I encountered an issue processing your request. Please try again in a moment."
+
+        try:
+            logger.info("Routing multimodal message directly to Vision Model (%s)", ai_service.select_model(has_image=True))
+            final_text = await ai_service.analyze_image(
+                prompt=vision_prompt,
+                image_url=payload.image_url,
+            )
+        except AIResponseError as exc:
+            logger.error("Vision model response error in session %s: %s", session.id, exc)
+            final_text = exc.user_safe_message or "Unable to analyze this image. Please ensure photo is clear and in JPG, PNG, or WebP format."
+        except Exception as exc:
+            logger.error("Unexpected error in vision analysis for session %s: %s", session.id, exc, exc_info=True)
+            final_text = "Unable to analyze this image at this time. Please try again shortly."
+
+    # ========================================================
+    # CASE 2: TEXT-ONLY REQUEST (Direct to GPT-OSS 120B with tools)
+    # ========================================================
+    else:
+        if session.farm_id and farm_context:
+            context_block = build_context_block(farm_context)
+        else:
+            context_block = "[CONTEXT MODE: General Knowledge & Farming Science. Answering conceptual question directly.]"
+
+        system_content = SYSTEM_PROMPT + style_directive + "\n\n" + context_block
+        if session.summary:
+            system_content += f"\n\nSummary of earlier conversation: {session.summary}"
+        if rag_chunks:
+            sources_block = "\n".join(f"- {c['content']} (source: {c['source_title']})" for c in rag_chunks)
+            system_content += f"\n\nRelevant knowledge base excerpts:\n{sources_block}"
+
+        recent_messages = (
+            db.query(ChatMessage)
+            .filter(ChatMessage.session_id == session.id, ChatMessage.role.in_([ChatRole.USER, ChatRole.ASSISTANT]))
+            .order_by(ChatMessage.created_at.desc())
+            .limit(RECENT_MESSAGE_WINDOW)
+            .all()
+        )
+        recent_messages.reverse()
+
+        messages = [{"role": "system", "content": system_content}]
+
+        # Build pure text conversation history for GPT-OSS 120B (GPT-OSS does not accept image_url blocks)
+        for m in recent_messages:
+            content_text = m.content or ""
+            if m.image_url:
+                content_text = f"[Attached crop photo]: {content_text}".strip()
+            messages.append({"role": m.role.value, "content": content_text})
+
+        try:
+            for _ in range(MAX_TOOL_ROUNDS):
+                assistant_msg = await ai_service.generate_with_tools(
+                    messages,
+                    tools=ai_tools.TOOL_DEFINITIONS,
+                    reasoning_effort="medium",
+                )
+
+                if assistant_msg.get("tool_calls"):
+                    messages.append(assistant_msg)
+                    for call in assistant_msg["tool_calls"]:
+                        fn_name = call["function"]["name"]
+                        try:
+                            args = json.loads(call["function"]["arguments"] or "{}")
+                        except json.JSONDecodeError:
+                            args = {}
+                        tools_used.append(fn_name)
+                        try:
+                            result = await ai_tools.execute_tool(db, user, fn_name, args)
+                        except HTTPException as exc:
+                            result = {"error": exc.detail}
+                        except Exception as exc:
+                            logger.warning("Tool %s execution failed: %s", fn_name, exc, exc_info=True)
+                            result = {"error": f"Failed to execute {fn_name}: {str(exc)}"}
+                        messages.append(
+                            {"role": "tool", "tool_call_id": call["id"], "content": json.dumps(result, default=str)}
+                        )
+                    continue
+
+                final_text = assistant_msg.get("content", "")
+                break
+        except AIConfigError as exc:
+            logger.error("AIConfigError in chat session %s: %s", session.id, exc)
+            final_text = "AI service configuration is incomplete. Please contact your system administrator."
+        except AIResponseError as exc:
+            logger.error("AIResponseError in chat session %s: %s", session.id, exc)
+            final_text = exc.user_safe_message or (
+                "Annapoorna AI is temporarily busy. Please try again in a moment — "
+                "your message has been saved."
+            )
+        except Exception as exc:
+            logger.error("Unexpected error in chat session %s: %s", session.id, exc, exc_info=True)
+            final_text = "Something went wrong while processing your request. Please try again in a moment."
 
     if final_text is None:
-        final_text = "I wasn't able to finish that request. Could you try rephrasing it?"
+        final_text = "I wasn't able to complete that request. Please try asking again."
 
     assistant_message = ChatMessage(session_id=session.id, role=ChatRole.ASSISTANT, content=final_text)
     db.add(assistant_message)
 
     if session.title == "New conversation":
-        session.title = payload.content[:60]
+        session.title = user_display_content[:60]
 
     db.commit()
     db.refresh(assistant_message)

@@ -1,0 +1,134 @@
+/* =========================================================================
+   SidePlantIllustration Animation Keyframes & Timeline
+   Calm, non-distracting organic movement for framing authentication cards
+   ========================================================================= */
+
+.side-plant-container {
+  will-change: transform, opacity;
+}
+
+/* Stem extension */
+.side-stem {
+  stroke-dasharray: 280;
+  stroke-dashoffset: 280;
+  animation: sideStemGrow 4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes sideStemGrow {
+  0% {
+    stroke-dashoffset: 280;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+/* Leaves unfolding */
+.side-node-1 .leaf-left,
+.side-node-2 .leaf-left,
+.side-node-3 .leaf-left {
+  transform-origin: 80px 300px;
+  animation: sideLeafLeft 4s cubic-bezier(0.34, 1.3, 0.64, 1) forwards;
+}
+
+.side-node-1 .leaf-right,
+.side-node-2 .leaf-right,
+.side-node-3 .leaf-right {
+  transform-origin: 80px 290px;
+  animation: sideLeafRight 4s cubic-bezier(0.34, 1.3, 0.64, 1) forwards;
+}
+
+.side-node-1 .side-leaf { animation-delay: 0.4s; }
+.side-node-2 .side-leaf { animation-delay: 0.9s; }
+.side-node-3 .side-leaf { animation-delay: 1.4s; }
+
+@keyframes sideLeafLeft {
+  0% {
+    transform: scale(0) rotate(20deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes sideLeafRight {
+  0% {
+    transform: scale(0) rotate(-20deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+/* Grain head on right */
+.side-grain-head {
+  transform-origin: 80px 100px;
+  animation: sideGrainAppear 4s cubic-bezier(0.34, 1.3, 0.64, 1) forwards;
+  animation-delay: 1.6s;
+}
+
+@keyframes sideGrainAppear {
+  0% {
+    transform: scale(0) translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Very gentle, calm natural ambient sway after growing */
+.side-plant-left .side-plant-assembly {
+  transform-origin: 80px 360px;
+  animation: sideBreezeLeft 8s ease-in-out infinite 3.5s;
+}
+
+.side-plant-right .side-plant-assembly {
+  transform-origin: 80px 360px;
+  animation: sideBreezeRight 9s ease-in-out infinite 3.8s;
+}
+
+@keyframes sideBreezeLeft {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(1.2deg); }
+}
+
+@keyframes sideBreezeRight {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-1.4deg); }
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .side-stem,
+  .side-node-1 .leaf-left,
+  .side-node-2 .leaf-left,
+  .side-node-3 .leaf-left,
+  .side-node-1 .leaf-right,
+  .side-node-2 .leaf-right,
+  .side-node-3 .leaf-right,
+  .side-grain-head,
+  .side-plant-left .side-plant-assembly,
+  .side-plant-right .side-plant-assembly {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

@@ -1,0 +1,351 @@
+/* =========================================================================
+   HeroPlantIllustration Animation Keyframes & Timeline
+   Cycle Duration: ~7 seconds (continuous smooth looping)
+   
+   Timeline breakdown:
+   0%  - 8%   : Seed rests in soil
+   8%  - 18%  : Taproot grows downward into subsoil
+   15% - 32%  : Stem shoot emerges and elongates upward
+   28% - 46%  : Node 1 lower leaves unfurl
+   42% - 60%  : Node 2 mid-tier foliage unfolds
+   54% - 72%  : Node 3 upper crown leaves expand
+   65% - 82%  : Grain / harvest wheat head blooms with golden aura
+   72% - 92%  : Intelligence tags float in, mature plant gentle wind sway
+   92% - 98%  : Soft hold & fade
+   98% - 100% : Reset to seed
+   ========================================================================= */
+
+.hero-plant-container {
+  will-change: transform, opacity;
+}
+
+/* ================= 1. Seed & Soil ================= */
+.plant-seed {
+  animation: seedPulse 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: 210px 374px;
+}
+
+@keyframes seedPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  3% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  30% {
+    opacity: 0.8;
+    transform: scale(0.95);
+  }
+  92% {
+    opacity: 0.8;
+  }
+  98% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ================= 2. Root System ================= */
+.plant-roots path {
+  stroke-dasharray: 60;
+  stroke-dashoffset: 60;
+  animation: rootGrowth 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.plant-roots .root-main {
+  animation-delay: 0s;
+}
+
+.plant-roots .root-branch-right,
+.plant-roots .root-branch-left {
+  animation-delay: 0.35s;
+}
+
+.plant-roots .root-sub-right,
+.plant-roots .root-sub-left {
+  animation-delay: 0.7s;
+}
+
+@keyframes rootGrowth {
+  0%, 7% {
+    stroke-dashoffset: 60;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.8;
+  }
+  24%, 92% {
+    stroke-dashoffset: 0;
+    opacity: 0.85;
+  }
+  98%, 100% {
+    stroke-dashoffset: 60;
+    opacity: 0;
+  }
+}
+
+/* ================= 3. Main Stem Assembly ================= */
+.plant-stem {
+  stroke-dasharray: 230;
+  stroke-dashoffset: 230;
+  animation: stemUpward 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes stemUpward {
+  0%, 14% {
+    stroke-dashoffset: 230;
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  42%, 92% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+  98%, 100% {
+    stroke-dashoffset: 230;
+    opacity: 0;
+  }
+}
+
+/* ================= 4. Leaves & Nodes Unfolding ================= */
+/* Node 1 (Lower Leaves) */
+.node-1 .leaf-lower-left {
+  transform-origin: 210px 320px;
+  animation: leafUnfurlLeft 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation-delay: 0s;
+}
+.node-1 .leaf-lower-right {
+  transform-origin: 210px 310px;
+  animation: leafUnfurlRight 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation-delay: 0.15s;
+}
+
+/* Node 2 (Mid Leaves) */
+.node-2 .leaf-mid-left {
+  transform-origin: 210px 250px;
+  animation: leafUnfurlLeft 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation-delay: 0.75s;
+}
+.node-2 .leaf-mid-right {
+  transform-origin: 210px 235px;
+  animation: leafUnfurlRight 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation-delay: 0.9s;
+}
+
+/* Node 3 (Top Leaves) */
+.node-3 .leaf-top-left {
+  transform-origin: 210px 180px;
+  animation: leafUnfurlLeft 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation-delay: 1.45s;
+}
+.node-3 .leaf-top-right {
+  transform-origin: 210px 170px;
+  animation: leafUnfurlRight 7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation-delay: 1.6s;
+}
+
+@keyframes leafUnfurlLeft {
+  0%, 26% {
+    transform: scale(0) rotate(35deg);
+    opacity: 0;
+  }
+  36% {
+    opacity: 1;
+    transform: scale(1.08) rotate(-4deg);
+  }
+  42%, 92% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  98%, 100% {
+    transform: scale(0) rotate(35deg);
+    opacity: 0;
+  }
+}
+
+@keyframes leafUnfurlRight {
+  0%, 28% {
+    transform: scale(0) rotate(-35deg);
+    opacity: 0;
+  }
+  38% {
+    opacity: 1;
+    transform: scale(1.08) rotate(4deg);
+  }
+  44%, 92% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  98%, 100% {
+    transform: scale(0) rotate(-35deg);
+    opacity: 0;
+  }
+}
+
+/* Veins */
+.leaf-vein {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: veinGrow 7s ease-out infinite;
+}
+
+@keyframes veinGrow {
+  0%, 32% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+  42%, 92% {
+    stroke-dashoffset: 0;
+    opacity: 0.75;
+  }
+  98%, 100% {
+    stroke-dashoffset: 100;
+    opacity: 0;
+  }
+}
+
+/* ================= 5. Wheat / Grain Head (Maturity) ================= */
+.plant-harvest-grain {
+  transform-origin: 210px 150px;
+  animation: grainHeadBloom 7s cubic-bezier(0.34, 1.4, 0.64, 1) infinite;
+}
+
+@keyframes grainHeadBloom {
+  0%, 55% {
+    transform: scale(0) translateY(20px);
+    opacity: 0;
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.06) translateY(-2px);
+  }
+  72%, 92% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  98%, 100% {
+    transform: scale(0) translateY(20px);
+    opacity: 0;
+  }
+}
+
+/* Golden Sparkles */
+.sparkle {
+  animation: sparkleTwinkle 7s ease-in-out infinite;
+}
+.sparkle-1 { animation-delay: 0s; }
+.sparkle-2 { animation-delay: 0.4s; }
+.sparkle-3 { animation-delay: 0.8s; }
+
+@keyframes sparkleTwinkle {
+  0%, 65% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  72% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+  80% {
+    opacity: 0.4;
+    transform: scale(0.8);
+  }
+  88% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  93%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+}
+
+/* ================= 6. Organic Ambient Plant Sway ================= */
+.plant-stem-leaves-assembly {
+  transform-origin: 210px 374px;
+  animation: naturalWindSway 7s ease-in-out infinite;
+}
+
+@keyframes naturalWindSway {
+  0%, 48% {
+    transform: rotate(0deg);
+  }
+  58% {
+    transform: rotate(1.2deg);
+  }
+  70% {
+    transform: rotate(-1.4deg);
+  }
+  82% {
+    transform: rotate(0.8deg);
+  }
+  90% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+/* ================= 7. Floating Farm Intelligence Pills ================= */
+.floating-intel-badges .intel-pill {
+  animation: pillFadeIn 7s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.intel-soil {
+  animation-delay: 0s;
+}
+.intel-weather {
+  animation-delay: 0.25s;
+}
+.intel-health {
+  animation-delay: 0.5s;
+}
+
+@keyframes pillFadeIn {
+  0%, 68% {
+    opacity: 0;
+    transform: scale(0.7) translateY(12px);
+  }
+  76%, 90% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  96%, 100% {
+    opacity: 0;
+    transform: scale(0.8) translateY(-6px);
+  }
+}
+
+/* ================= ACCESSIBILITY: PREFERS-REDUCED-MOTION ================= */
+@media (prefers-reduced-motion: reduce) {
+  .plant-seed,
+  .plant-roots path,
+  .plant-stem,
+  .node-1 .leaf-lower-left,
+  .node-1 .leaf-lower-right,
+  .node-2 .leaf-mid-left,
+  .node-2 .leaf-mid-right,
+  .node-3 .leaf-top-left,
+  .node-3 .leaf-top-right,
+  .leaf-vein,
+  .plant-harvest-grain,
+  .sparkle,
+  .plant-stem-leaves-assembly,
+  .floating-intel-badges .intel-pill {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

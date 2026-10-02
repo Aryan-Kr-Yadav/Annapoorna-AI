@@ -46,7 +46,7 @@ class ChatMessage(Base, UUIDPKMixin, TimestampMixin):
     )
     role: Mapped[ChatRole] = mapped_column(Enum(ChatRole, name="chat_role_enum"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
-    image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    image_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # JSON-encoded list of {name, args} tool calls made while producing this message, if any.
     tool_calls: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 

@@ -75,7 +75,14 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> List[str]:
         origins = [o.strip() for o in self.FRONTEND_URL.split(',') if o.strip()]
-        for fb in ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:8000', 'http://127.0.0.1:8000']:
+        for fb in [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:8000',
+            'http://127.0.0.1:8000',
+        ]:
             if fb not in origins:
                 origins.append(fb)
         return origins
