@@ -30,9 +30,14 @@ logger = logging.getLogger("annapoorna.security")
 settings = get_settings()
 bearer_scheme = HTTPBearer(auto_error=False)
 
-# --- JWKS client (caches keys, handles rotation) ---
+# --- JWKS client (caches keys, handles rotation with finite network timeout) ---
 jwks_client = (
-    pyjwt.PyJWKClient(settings.NEON_AUTH_JWKS_URL)
+    pyjwt.PyJWKClient(
+        settings.NEON_AUTH_JWKS_URL,
+        cache_jwk_set=True,
+        lifespan=3600,
+        timeout=10,
+    )
     if settings.NEON_AUTH_JWKS_URL and settings.NEON_AUTH_JWKS_URL.startswith("http")
     else None
 )
