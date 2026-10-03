@@ -203,13 +203,25 @@ async def explain_scheme(
     system_prompt = (
         "You are Annapoorna AI's Government Scheme Explainer for Indian farmers.\n"
         f"Explain this verified official government scheme in {lang_label}.\n\n"
+        "STRUCTURAL FORMAT REQUIREMENTS:\n"
+        "Your response MUST be organized with clear Markdown headings (##) and bullet points in this exact sequence:\n"
+        "## 🌾 Scheme Overview\n"
+        "(A clear 1-2 sentence plain-language summary of what this scheme is and why it exists)\n\n"
+        "## 🎁 Key Benefits & Financial Assistance\n"
+        "(Bullet points of exact subsidies, monetary assistance, insurance cover, or equipment provided)\n\n"
+        "## 👤 Who is Eligible?\n"
+        "(Bullet points of exact farmer eligibility criteria, land limits, or categories)\n\n"
+        "## 📄 Required Documents\n"
+        "(Bullet points of needed documents like Aadhaar, Land records/Khasra-Khatauni, Bank passbook, etc.)\n\n"
+        "## 📝 How to Apply\n"
+        "(Step-by-step guidance on applying via the official website, CSC center, or state agriculture office)\n\n"
+        "## ⚠️ Important Advisory\n"
+        f"(Direct link to verify and apply: {scheme.official_url or 'Official government portal'}. Remind never to pay middlemen.)\n\n"
         "CRITICAL RULES:\n"
         "1. Rely ONLY on the VERIFIED SCHEME DATA provided below.\n"
         "2. Do NOT invent, assume, or hallucinate any financial amounts, benefits, deadlines, documents, or rules.\n"
-        "3. If any detail is not specified in the verified data, state clearly that the farmer should verify it on the official portal.\n"
-        "4. Keep the explanation empathetic, easy to read, with clear bullet points.\n"
-        "5. Always advise the farmer to apply only through the official portal or authorized CSC / agriculture department.\n"
-        f"6. Official Portal Link: {scheme.official_url or 'Official government website'}\n\n"
+        "3. If any specific detail (e.g. exact document or deadline) is not mentioned in the verified data, clearly state: 'Please confirm this specific requirement on the official portal.'\n"
+        "4. Tone must be encouraging, respectful, and farmer-friendly without overly bureaucratic jargon.\n\n"
         f"VERIFIED SCHEME DATA:\n{json.dumps(verified_context, indent=2, ensure_ascii=False)}"
     )
 
@@ -223,30 +235,37 @@ async def explain_scheme(
         )
     except Exception as exc:
         logger.warning(f"Groq scheme explanation failed, falling back to verified text: {exc}")
-        # Deterministic fallback text directly from verified data so feature NEVER breaks
-        benefits_list = "\n".join(f"• {b}" for b in scheme.benefits) if scheme.benefits else "Refer to official portal"
+        # Deterministic fallback text directly from verified data formatted in the same clean structure
+        benefits_list = "\n".join(f"- {b}" for b in scheme.benefits) if scheme.benefits else "- Refer to official portal for current financial terms."
         elig_list = (
-            "\n".join(f"• {e}" for e in scheme.eligibility)
+            "\n".join(f"- {e}" for e in scheme.eligibility)
             if isinstance(scheme.eligibility, list)
-            else str(scheme.eligibility)
-        )
-        docs_list = "\n".join(f"• {d}" for d in scheme.required_documents) if scheme.required_documents else "Standard KYC"
+            else f"- {scheme.eligibility}"
+        ) if scheme.eligibility else "- Small and marginal farmers as per state and central guidelines."
+        docs_list = "\n".join(f"- {d}" for d in scheme.required_documents) if scheme.required_documents else "- Aadhaar card, Land ownership / record, Active bank account details."
+        app_process = scheme.application_process or "Apply online through the official scheme portal or visit your nearest Common Service Centre (CSC) or District Agriculture Officer."
 
         if lang in ["hi", "hindi"]:
             explanation_text = (
-                f"**{scheme.name} ({scheme.short_name or ''})**\n\n"
-                f"**लाभ:**\n{benefits_list}\n\n"
-                f"**पात्रता शर्तें:**\n{elig_list}\n\n"
-                f"**आवश्यक दस्तावेज:**\n{docs_list}\n\n"
-                f"कृपया आवेदन करने से पहले आधिकारिक वेबसाइट पर विवरण सत्यापित करें: {scheme.official_url or 'आधिकारिक पोर्टल'}"
+                f"## 🌾 योजना का विवरण: {scheme.name} ({scheme.short_name or ''})\n\n"
+                f"{scheme.description or 'यह भारत सरकार / राज्य सरकार द्वारा किसानों के कल्याण हेतु चलाई जा रही एक प्रमुख कृषि योजना है।'}\n\n"
+                f"## 🎁 मुख्य लाभ एवं वित्तीय सहायता\n{benefits_list}\n\n"
+                f"## 👤 पात्रता शर्तें\n{elig_list}\n\n"
+                f"## 📄 आवश्यक दस्तावेज\n{docs_list}\n\n"
+                f"## 📝 आवेदन कैसे करें\n- {app_process}\n\n"
+                f"## ⚠️ महत्वपूर्ण सलाह\n"
+                f"आवेदन करने से पहले कृपया आधिकारिक पोर्टल पर नवीनतम विवरण सत्यापित करें: {scheme.official_url or 'आधिकारिक पोर्टल'}"
             )
         else:
             explanation_text = (
-                f"**{scheme.name} ({scheme.short_name or ''})**\n\n"
-                f"**Key Benefits:**\n{benefits_list}\n\n"
-                f"**Eligibility Requirements:**\n{elig_list}\n\n"
-                f"**Required Documents:**\n{docs_list}\n\n"
-                f"Please verify final eligibility and apply at the official portal: {scheme.official_url or 'Official Portal'}"
+                f"## 🌾 Scheme Overview: {scheme.name} ({scheme.short_name or ''})\n\n"
+                f"{scheme.description or 'Official agricultural scheme to support farmers with financial and operational assistance.'}\n\n"
+                f"## 🎁 Key Benefits & Financial Assistance\n{benefits_list}\n\n"
+                f"## 👤 Who is Eligible?\n{elig_list}\n\n"
+                f"## 📄 Required Documents\n{docs_list}\n\n"
+                f"## 📝 How to Apply\n- {app_process}\n\n"
+                f"## ⚠️ Important Advisory\n"
+                f"Please verify final eligibility and application dates on the official portal: {scheme.official_url or 'Official Portal'}"
             )
 
     return Envelope(

@@ -11,8 +11,10 @@ import { PageHeader } from "../components/common/PageHeader";
 import { CardSkeleton } from "../components/common/Skeleton";
 import { EmptyState } from "../components/common/EmptyState";
 import { ErrorState } from "../components/common/ErrorState";
+import { useTranslation } from "../contexts/LanguageContext";
 
 export function Farms() {
+  const { t } = useTranslation();
   const { farms, loading, error, refresh } = useFarms();
 
   // Farm details cache (crops and tasks per farm)
@@ -119,8 +121,8 @@ export function Farms() {
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Page Header */}
       <PageHeader
-        title="My Farms"
-        subtitle="Manage your agricultural land parcels, crop cycles, and field activity."
+        title={t("farms.title", "My Farms")}
+        subtitle={t("farms.subtitle", "Manage your agricultural land parcels, crop cycles, and field activity.")}
         actions={
           <button
             type="button"
@@ -128,7 +130,7 @@ export function Farms() {
             className="btn-primary text-xs"
           >
             <Plus className="h-4 w-4" />
-            <span>Add Farm</span>
+            <span>{t("farms.add", "Add Farm")}</span>
           </button>
         }
       />
@@ -145,8 +147,8 @@ export function Farms() {
       ) : farms.length === 0 ? (
         <EmptyState
           icon={Tractor}
-          title="No farms recorded yet"
-          description="Add your first farm parcel to start recording crops, field operations, and soil tests."
+          title={t("farms.no_farms_title", "No farms recorded yet")}
+          description={t("farms.no_farms_desc", "Add your first farm parcel to start recording crops, field operations, and soil tests.")}
           action={
             <button
               type="button"
@@ -154,7 +156,7 @@ export function Farms() {
               className="btn-primary"
             >
               <Plus className="h-4 w-4" />
-              <span>Add Your First Farm</span>
+              <span>{t("farms.add_first", "Add Your First Farm")}</span>
             </button>
           }
         />

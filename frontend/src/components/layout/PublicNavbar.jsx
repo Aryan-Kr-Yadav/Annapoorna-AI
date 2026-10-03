@@ -40,16 +40,16 @@ export function PublicNavbar() {
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-7 text-xs font-semibold text-[var(--foreground-muted)]">
           <a href="#features" className="hover:text-[var(--foreground)] transition-colors">
-            Features
+            {t("landing.nav_features", "Features")}
           </a>
           <a href="#lifecycle" className="hover:text-[var(--foreground)] transition-colors">
-            Farm Lifecycle
+            {t("landing.nav_lifecycle", "Farm Lifecycle")}
           </a>
           <a href="#why-annapoorna" className="hover:text-[var(--foreground)] transition-colors">
-            Why Annapoorna
+            {t("landing.nav_why", "Why Annapoorna")}
           </a>
           <a href="#architecture" className="hover:text-[var(--foreground)] transition-colors">
-            How It Works
+            {t("landing.nav_how", "How It Works")}
           </a>
         </nav>
 
@@ -83,7 +83,7 @@ export function PublicNavbar() {
           {/* Auth Action */}
           {user ? (
             <Link to="/dashboard" className="btn-primary text-xs py-2 px-3.5">
-              <span>Go to Dashboard</span>
+              <span>{t("landing.go_dashboard", "Go to Dashboard")}</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           ) : (
@@ -93,13 +93,13 @@ export function PublicNavbar() {
                 className="btn-secondary text-xs py-2 px-3.5"
               >
                 <LogIn className="h-3.5 w-3.5 text-stone-500" />
-                <span>Log In</span>
+                <span>{t("landing.login", "Log In")}</span>
               </Link>
               <Link
                 to="/signup"
                 className="btn-primary text-xs py-2 px-3.5"
               >
-                <span>Get Started</span>
+                <span>{t("landing.get_started", "Get Started")}</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -137,28 +137,28 @@ export function PublicNavbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="py-1.5 hover:text-[var(--foreground)]"
             >
-              Features
+              {t("landing.nav_features", "Features")}
             </a>
             <a
               href="#lifecycle"
               onClick={() => setMobileMenuOpen(false)}
               className="py-1.5 hover:text-[var(--foreground)]"
             >
-              Farm Lifecycle
+              {t("landing.nav_lifecycle", "Farm Lifecycle")}
             </a>
             <a
               href="#why-annapoorna"
               onClick={() => setMobileMenuOpen(false)}
               className="py-1.5 hover:text-[var(--foreground)]"
             >
-              Why Annapoorna
+              {t("landing.nav_why", "Why Annapoorna")}
             </a>
             <a
               href="#architecture"
               onClick={() => setMobileMenuOpen(false)}
               className="py-1.5 hover:text-[var(--foreground)]"
             >
-              How It Works
+              {t("landing.nav_how", "How It Works")}
             </a>
           </nav>
 
@@ -172,7 +172,7 @@ export function PublicNavbar() {
               className="flex items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-secondary)] py-2 text-xs font-medium text-[var(--foreground)]"
             >
               <Globe className="h-3.5 w-3.5 text-stone-400" />
-              <span>Language: {language === "en" ? "Switch to हिन्दी" : "Switch to English"}</span>
+              <span>{t("landing.nav_switch_lang", language === "en" ? "हिन्दी में बदलें" : "Switch to English")}</span>
             </button>
 
             {user ? (
@@ -181,7 +181,7 @@ export function PublicNavbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="btn-primary w-full text-center text-xs py-2.5"
               >
-                Go to Dashboard
+                {t("landing.go_dashboard", "Go to Dashboard")}
               </Link>
             ) : (
               <div className="grid grid-cols-2 gap-2">
@@ -190,14 +190,14 @@ export function PublicNavbar() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="btn-secondary w-full text-center text-xs py-2.5"
                 >
-                  Log In
+                  {t("landing.login", "Log In")}
                 </Link>
                 <Link
                   to="/signup"
                   onClick={() => setMobileMenuOpen(false)}
                   className="btn-primary w-full text-center text-xs py-2.5"
                 >
-                  Get Started
+                  {t("landing.get_started", "Get Started")}
                 </Link>
               </div>
             )}

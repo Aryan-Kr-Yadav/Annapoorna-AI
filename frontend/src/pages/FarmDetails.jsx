@@ -21,6 +21,7 @@ import {
 import farmsApi from "../api/farms";
 import cropsApi from "../api/crops";
 import { useFarms } from "../contexts/FarmContext";
+import { useTranslation } from "../contexts/LanguageContext";
 import { PageHeader, SectionHeader } from "../components/common/PageHeader";
 import { Badge } from "../components/common/Badge";
 import { CardSkeleton } from "../components/common/Skeleton";
@@ -33,6 +34,7 @@ import { ConfirmDialog } from "../components/common/ConfirmDialog";
 import { formatDate, formatFarmId } from "../utils/formatters";
 
 export function FarmDetails() {
+  const { t } = useTranslation();
   const { farmId } = useParams();
   const navigate = useNavigate();
   const { selectFarm, refresh: refreshFarms } = useFarms();
@@ -141,8 +143,8 @@ export function FarmDetails() {
   const pastCrops = crops.filter((c) => c.status !== "active");
 
   const tabs = [
-    { id: "overview", label: "Overview" },
-    { id: "crops", label: "Crops", count: crops.length },
+    { id: "overview", label: t("farm.overview", "Overview") },
+    { id: "crops", label: t("farm.crops", "Crops"), count: crops.length },
   ];
 
   return (
@@ -154,7 +156,7 @@ export function FarmDetails() {
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500 hover:text-stone-900 dark:hover:text-stone-200"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          <span>Back to All Farms</span>
+          <span>{t("farm.back_to_farms", "Back to All Farms")}</span>
         </Link>
 
         <div className="flex items-center gap-2">
@@ -164,7 +166,7 @@ export function FarmDetails() {
             className="btn-secondary text-xs"
           >
             <Pencil className="h-3.5 w-3.5" />
-            <span>Edit Farm</span>
+            <span>{t("farm.edit", "Edit Farm")}</span>
           </button>
           <button
             type="button"
@@ -172,7 +174,7 @@ export function FarmDetails() {
             className="btn-primary text-xs"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>Add Crop</span>
+            <span>{t("farm.addCrop", "Add Crop")}</span>
           </button>
           <button
             type="button"
@@ -232,30 +234,30 @@ export function FarmDetails() {
         {/* Specs Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-primary-50 dark:border-primary-950 text-xs">
           <div className="card p-3 bg-stone-50/50 dark:bg-[#151e13]/50">
-            <span className="text-2xs text-stone-400 block font-semibold">Soil Type</span>
+            <span className="text-2xs text-stone-400 block font-semibold">{t("farm.soilType", "Soil Type")}</span>
             <span className="font-bold text-primary-900 dark:text-primary-100 capitalize">
               {farm.soil_type || "Loamy"}
             </span>
           </div>
 
           <div className="card p-3 bg-stone-50/50 dark:bg-[#151e13]/50">
-            <span className="text-2xs text-stone-400 block font-semibold">Irrigation Type</span>
+            <span className="text-2xs text-stone-400 block font-semibold">{t("farm.irrigationType", "Irrigation Type")}</span>
             <span className="font-bold text-primary-900 dark:text-primary-100 capitalize">
               {farm.irrigation_type || "Rainfed"}
             </span>
           </div>
 
           <div className="card p-3 bg-stone-50/50 dark:bg-[#151e13]/50">
-            <span className="text-2xs text-stone-400 block font-semibold">Registered On</span>
+            <span className="text-2xs text-stone-400 block font-semibold">{t("farm.registered_on", "Registered On")}</span>
             <span className="font-bold text-primary-900 dark:text-primary-100">
               {formatDate(farm.created_at)}
             </span>
           </div>
 
           <div className="card p-3 bg-stone-50/50 dark:bg-[#151e13]/50">
-            <span className="text-2xs text-stone-400 block font-semibold">Active Crops</span>
+            <span className="text-2xs text-stone-400 block font-semibold">{t("farm.activeCrops", "Active Crops")}</span>
             <span className="font-bold text-emerald-700 dark:text-emerald-400">
-              {activeCrops.length} in field
+              {activeCrops.length} {t("farm.in_field", "in field")}
             </span>
           </div>
         </div>
@@ -270,15 +272,15 @@ export function FarmDetails() {
           {/* Active Crops in Field */}
           <div>
             <SectionHeader
-              title="Active Crop Cycles"
-              subtitle="Crops currently planted and growing on this farm parcel"
+              title={t("farm.active_cycles_title", "Active Crop Cycles")}
+              subtitle={t("farm.active_cycles_sub", "Crops currently planted and growing on this farm parcel")}
               action={
                 <button
                   type="button"
                   onClick={() => setAddingCrop(true)}
                   className="text-xs font-semibold text-primary-700 dark:text-primary-400 hover:underline"
                 >
-                  + Add Crop
+                  + {t("farm.addCrop", "Add Crop")}
                 </button>
               }
             />

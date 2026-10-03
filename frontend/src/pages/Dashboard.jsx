@@ -193,11 +193,11 @@ export function Dashboard() {
         <div className="flex items-center gap-2">
           <Link to="/assistant" className="btn-primary text-xs">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Ask Annapoorna</span>
+            <span>{t("dashboard.ask_annapoorna", "Ask Annapoorna")}</span>
           </Link>
           <Link to="/crop-doctor" className="btn-secondary text-xs">
             <Stethoscope className="h-3.5 w-3.5" />
-            <span>Inspect Crop</span>
+            <span>{t("dashboard.inspect_crop", "Inspect Crop")}</span>
           </Link>
         </div>
       </div>
@@ -207,14 +207,14 @@ export function Dashboard() {
       {/* TODAY'S FARM BRIEF (Section 16) */}
       <div>
         <SectionHeader
-          title="Today's Farm Brief"
-          subtitle="Real-time agronomic conditions and alerts for this plot"
+          title={t("dashboard.farm_brief_title", "Today's Farm Brief")}
+          subtitle={t("dashboard.farm_brief_sub", "Real-time agronomic conditions and alerts for this plot")}
         />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <MetricCard
             icon={CloudSun}
-            label="Weather Condition"
+            label={t("dashboard.weather_condition", "Weather Condition")}
             value={
               data?.weather?.current?.temperature !== undefined
                 ? `${Math.round(data.weather.current.temperature)}°C`
@@ -227,7 +227,7 @@ export function Dashboard() {
 
           <MetricCard
             icon={CheckSquare}
-            label="Pending Tasks"
+            label={t("dashboard.pending_tasks", "Pending Tasks")}
             value={todaysTasks.filter((t) => !t.is_completed).length}
             subtext={
               todaysTasks.length > 0
@@ -240,7 +240,7 @@ export function Dashboard() {
 
           <MetricCard
             icon={Droplets}
-            label="Irrigation Status"
+            label={t("dashboard.irrigation", "Irrigation Status")}
             value={
               data?.irrigation?.days_until_next !== null &&
               data?.irrigation?.days_until_next !== undefined
@@ -254,7 +254,7 @@ export function Dashboard() {
 
           <MetricCard
             icon={Stethoscope}
-            label="Crop Health"
+            label={t("dashboard.crop_health", "Crop Health")}
             value={
               recentInspections.length > 0
                 ? recentInspections[0].severity?.toUpperCase() || "MONITORING"
@@ -350,18 +350,18 @@ export function Dashboard() {
           <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
             <div>
               <h3 className="text-sm font-bold text-[var(--foreground)]">
-                Today's Farm Tasks
+                {t("dashboard.todays_tasks", "Today's Farm Tasks")}
               </h3>
-              <p className="text-2xs text-[var(--foreground-muted)]">Mark completed activities as you work</p>
+              <p className="text-2xs text-[var(--foreground-muted)]">{t("dashboard.tasks_subtext", "Mark completed activities as you work")}</p>
             </div>
             <Link to="/tasks" className="text-xs font-semibold text-primary-700 dark:text-primary-400 hover:underline">
-              View All Tasks →
+              {t("dashboard.view_all_tasks", "View All Tasks →")}
             </Link>
           </div>
 
           {todaysTasks.length === 0 ? (
             <div className="py-8 text-center text-xs text-[var(--foreground-muted)]">
-              No tasks scheduled for today. You're all caught up!
+              {t("dashboard.no_tasks_today", "No tasks scheduled for today. You're all caught up!")}
             </div>
           ) : (
             <div className="divide-y divide-[var(--border-subtle)]">
@@ -400,7 +400,7 @@ export function Dashboard() {
         {/* Quick Operations & Shortcuts */}
         <div className="card space-y-3">
           <h3 className="text-sm font-bold text-[var(--foreground)] border-b border-[var(--border)] pb-3">
-            Quick Actions
+            {t("dashboard.quick_actions", "Quick Actions")}
           </h3>
 
           <div className="grid grid-cols-2 gap-2">
@@ -410,9 +410,9 @@ export function Dashboard() {
             >
               <Droplets className="h-5 w-5 text-sky-600 dark:text-sky-400 mb-1 group-hover:scale-110 transition" />
               <span className="text-xs font-bold text-[var(--foreground)]">
-                Log Water
+                {t("dashboard.log_water", "Log Water")}
               </span>
-              <span className="text-3xs text-[var(--foreground-muted)]">Irrigation</span>
+              <span className="text-3xs text-[var(--foreground-muted)]">{t("nav.irrigation", "Irrigation")}</span>
             </Link>
 
             <Link
@@ -421,9 +421,9 @@ export function Dashboard() {
             >
               <DollarSign className="h-5 w-5 text-amber-600 dark:text-amber-400 mb-1 group-hover:scale-110 transition" />
               <span className="text-xs font-bold text-[var(--foreground)]">
-                Add Cost
+                {t("dashboard.add_cost", "Add Cost")}
               </span>
-              <span className="text-3xs text-[var(--foreground-muted)]">Expense</span>
+              <span className="text-3xs text-[var(--foreground-muted)]">{t("crop.expenses", "Expense")}</span>
             </Link>
 
             <Link
@@ -432,9 +432,9 @@ export function Dashboard() {
             >
               <Stethoscope className="h-5 w-5 text-purple-600 dark:text-purple-400 mb-1 group-hover:scale-110 transition" />
               <span className="text-xs font-bold text-[var(--foreground)]">
-                Scan Crop
+                {t("dashboard.scan_crop", "Scan Crop")}
               </span>
-              <span className="text-3xs text-[var(--foreground-muted)]">Crop Doctor</span>
+              <span className="text-3xs text-[var(--foreground-muted)]">{t("nav.crop_doctor", "Crop Doctor")}</span>
             </Link>
 
             <Link
@@ -443,9 +443,9 @@ export function Dashboard() {
             >
               <Compass className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mb-1 group-hover:scale-110 transition" />
               <span className="text-xs font-bold text-[var(--foreground)]">
-                Crop Plan
+                {t("dashboard.crop_plan", "Crop Plan")}
               </span>
-              <span className="text-3xs text-[var(--foreground-muted)]">AI Rotation</span>
+              <span className="text-3xs text-[var(--foreground-muted)]">{t("nav.crop_planner", "AI Rotation")}</span>
             </Link>
           </div>
 
@@ -457,7 +457,7 @@ export function Dashboard() {
             >
               <div className="flex items-center gap-2">
                 <Sprout className="h-4 w-4 text-primary-600" />
-                <span>Open Complete Crop Diary</span>
+                <span>{t("dashboard.open_diary", "Open Complete Crop Diary")}</span>
               </div>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>

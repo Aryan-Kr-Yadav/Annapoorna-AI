@@ -24,6 +24,7 @@ import Badge from "../components/common/Badge";
 import EmptyState from "../components/common/EmptyState";
 import Skeleton from "../components/common/Skeleton";
 import ErrorState from "../components/common/ErrorState";
+import { MarkdownMessage } from "../components/common/MarkdownMessage";
 
 const CATEGORIES = [
   "All",
@@ -56,7 +57,7 @@ const STATES = [
 ];
 
 export default function Schemes() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const { selectedFarm } = useFarms();
 
   const [activeTab, setActiveTab] = useState("recommended");
@@ -77,10 +78,17 @@ export default function Schemes() {
 
   // AI Explainer State
   const [explainModalOpen, setExplainModalOpen] = useState(false);
-  const [explainLang, setExplainLang] = useState("en");
+  const [explainLang, setExplainLang] = useState(language || "en");
   const [explainQuestion, setExplainQuestion] = useState("");
   const [explainResult, setExplainResult] = useState(null);
   const [explainLoading, setExplainLoading] = useState(false);
+
+  // Keep explainLang updated when user switches UI language
+  useEffect(() => {
+    if (language) {
+      setExplainLang(language);
+    }
+  }, [language]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -104,7 +112,7 @@ export default function Schemes() {
     loadData();
   }, [loadData]);
 
-  const handleAskAI = async (scheme) => {
+  const handleAskAI = async (scheme, targetLang = explainLang) => {
     setActiveScheme(scheme);
     setExplainModalOpen(true);
     setExplainResult(null);
@@ -112,13 +120,31 @@ export default function Schemes() {
     setExplainLoading(true);
     try {
       const res = await schemesApi.explain(scheme.id, {
-        language: explainLang,
+        language: targetLang,
         question: "",
         farm_id: selectedFarm?.id,
       });
       setExplainResult(res);
     } catch (err) {
-      setExplainResult({ summary: "Failed to generate AI explanation: " + err.message });
+      setExplainResult({ explanation: "Failed to generate AI explanation: " + err.message });
+    } finally {
+      setExplainLoading(false);
+    }
+  };
+
+  const handleExplainLangChange = async (newLang) => {
+    setExplainLang(newLang);
+    if (!activeScheme) return;
+    setExplainLoading(true);
+    try {
+      const res = await schemesApi.explain(activeScheme.id, {
+        language: newLang,
+        question: explainQuestion.trim() || "",
+        farm_id: selectedFarm?.id,
+      });
+      setExplainResult(res);
+    } catch (err) {
+      setExplainResult({ explanation: "Failed to generate AI explanation: " + err.message });
     } finally {
       setExplainLoading(false);
     }
@@ -470,66 +496,160 @@ export default function Schemes() {
       {/* AI EXPLAINER MODAL */}
       {explainModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-[#142219] border border-primary-100 dark:border-[#1e3627] space-y-4">
+          <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-5 sm:p-6 shadow-2xl dark:bg-[#142219] border border-primary-200 dark:border-[#1e3627] space-y-4">
+            {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary-600" />
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  AI Scheme Explainer: {activeScheme?.name}
-                </h3>
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-950/70 dark:text-primary-300">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                      {t("schemes.explainer_title", "AI Scheme Explainer")}
+                    </h3>
+                    <Badge variant="primary">{activeScheme?.category || "Agriculture"}</Badge>
+                  </div>
+                  <p className="text-xs font-semibold text-primary-800 dark:text-primary-300 mt-0.5">
+                    {activeScheme?.name} {activeScheme?.short_name ? `(${activeScheme.short_name})` : ""}
+                  </p>
+                </div>
               </div>
-              <button onClick={() => setExplainModalOpen(false)} className="text-slate-400 hover:text-slate-700">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
 
-            {explainLoading ? (
-              <div className="flex flex-col items-center justify-center p-8 space-y-2">
-                <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-                <p className="text-xs text-slate-500">Annapoorna is breaking down the government policy...</p>
-              </div>
-            ) : explainResult ? (
-              <div className="space-y-3 text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-                <div className="rounded-xl bg-slate-50 p-3.5 dark:bg-slate-800">
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-1">Simple Explanation</h4>
-                  <p>{explainResult.summary || explainResult.explanation}</p>
+              <div className="flex items-center gap-2">
+                {/* Language Switcher inside modal */}
+                <div className="flex items-center rounded-lg border border-slate-200 dark:border-slate-800 p-0.5 bg-slate-50 dark:bg-slate-900 text-2xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleExplainLangChange("en")}
+                    className={`px-2 py-1 rounded-md transition ${
+                      explainLang === "en"
+                        ? "bg-white dark:bg-[#1f3124] text-primary-900 dark:text-primary-200 shadow-2xs font-bold"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExplainLangChange("hi")}
+                    className={`px-2 py-1 rounded-md transition ${
+                      explainLang === "hi"
+                        ? "bg-white dark:bg-[#1f3124] text-primary-900 dark:text-primary-200 shadow-2xs font-bold"
+                        : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    हिन्दी
+                  </button>
                 </div>
 
-                {explainResult.key_takeaways && (
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white mb-1">Key Takeaways</h4>
-                    <ul className="list-disc pl-4 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setExplainModalOpen(false)}
+                  className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Official Source & Verification Badge bar */}
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 p-2.5 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 text-2xs text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-1.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>
+                  <strong className="text-slate-800 dark:text-slate-200">{t("schemes.official_source", "Official Source")}:</strong>{" "}
+                  {explainResult?.official_source || activeScheme?.source || activeScheme?.ministry_or_department || "Government of India"}
+                </span>
+              </div>
+              {(explainResult?.official_url || activeScheme?.official_url) && (
+                <a
+                  href={explainResult?.official_url || activeScheme?.official_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-bold text-primary-700 dark:text-primary-400 hover:underline"
+                >
+                  <span>{t("schemes.official_link", "Open Official Portal")}</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+
+            {/* Content Area */}
+            {explainLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+                <p className="text-xs font-medium text-slate-500 dark:text-slate-400 text-center">
+                  {t("schemes.explainer_loading", "Annapoorna is breaking down the government policy into structured plain language...")}
+                </p>
+              </div>
+            ) : explainResult ? (
+              <div className="space-y-4">
+                {/* Structured Markdown Rendering */}
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white p-4 sm:p-5 dark:bg-[#121c15] shadow-2xs">
+                  <MarkdownMessage
+                    content={explainResult.explanation || explainResult.summary || ""}
+                  />
+                </div>
+
+                {/* Key Takeaways if explicitly present */}
+                {Array.isArray(explainResult.key_takeaways) && explainResult.key_takeaways.length > 0 && (
+                  <div className="rounded-xl bg-primary-50/70 dark:bg-primary-950/40 p-4 border border-primary-200 dark:border-primary-900/60">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-primary-950 dark:text-primary-200 mb-2">
+                      Key Highlights for Farmers
+                    </h4>
+                    <ul className="space-y-1.5 text-xs text-primary-900 dark:text-primary-300">
                       {explainResult.key_takeaways.map((item, idx) => (
-                        <li key={idx}>{item}</li>
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="font-bold text-primary-600">•</span>
+                          <span>{item}</span>
+                        </li>
                       ))}
                     </ul>
                   </div>
                 )}
+
+                {/* Verification Notice */}
+                <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 p-2.5 border border-amber-200 dark:border-amber-900/40 text-2xs text-amber-900 dark:text-amber-300 flex items-start gap-2">
+                  <Info className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+                  <span>
+                    {explainResult.disclaimer || t("schemes.disclaimer_title", "Scheme terms, deadlines, and budget allocations can update periodically. Always verify your state's active notification on the official portal before submitting bank or land papers.")}
+                  </span>
+                </div>
               </div>
             ) : null}
 
-            {/* Custom Question */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            {/* Custom Interactive Question Bar */}
+            <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
               <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Ask a specific question about this scheme:
+                {t("schemes.ask_question_label", "Ask a specific question about this scheme:")}
               </label>
-              <div className="flex gap-2">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendCustomQuestion();
+                }}
+                className="flex gap-2"
+              >
                 <input
                   type="text"
                   value={explainQuestion}
                   onChange={(e) => setExplainQuestion(e.target.value)}
-                  placeholder="e.g. Can tenant farmers apply? How much subsidy for drip?"
-                  className="input text-xs"
+                  placeholder={t("schemes.ask_placeholder", "e.g. Can tenant farmers apply? How much subsidy for drip?")}
+                  className="input text-xs flex-1"
                 />
                 <button
-                  type="button"
-                  onClick={handleSendCustomQuestion}
+                  type="submit"
                   disabled={explainLoading || !explainQuestion.trim()}
-                  className="btn-primary text-xs shrink-0"
+                  className="btn-primary text-xs shrink-0 px-4"
                 >
-                  Ask
+                  {explainLoading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <span>{t("schemes.ask_btn", "Ask")}</span>
+                  )}
                 </button>
-              </div>
+              </form>
             </div>
           </div>
         </div>

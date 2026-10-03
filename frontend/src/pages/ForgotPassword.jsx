@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Sprout, ArrowLeft, CheckCircle2, KeyRound, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { authClient } from "../api/authClient";
+import { useTranslation } from "../contexts/LanguageContext";
 import { SidePlantIllustration } from "../components/illustrations/SidePlantIllustration";
 
 export default function ForgotPassword() {
+  const { t } = useTranslation();
   const [step, setStep] = useState("email"); // 'email' | 'otp' | 'done'
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -37,7 +39,7 @@ export default function ForgotPassword() {
     setError(null);
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      setError(t("auth.min_8_chars", "Password must be at least 8 characters."));
       return;
     }
     if (password !== confirmPassword) {
@@ -85,7 +87,7 @@ export default function ForgotPassword() {
           to="/login"
           className="text-xs font-semibold text-primary-700 dark:text-primary-400 hover:underline flex items-center gap-1"
         >
-          <span>← Back to Login</span>
+          <span>← {t("auth.back_to_login", "Back to Login")}</span>
         </Link>
       </header>
 
@@ -108,10 +110,10 @@ export default function ForgotPassword() {
               </Link>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-[var(--foreground)]">
-                  Reset Password
+                  {t("auth.resetPassword", "Reset Password")}
                 </h1>
                 <p className="text-2xs text-[var(--foreground-muted)]">
-                  Recover access to your farm workspace
+                  {t("auth.login_subtitle", "Recover access to your farm workspace")}
                 </p>
               </div>
             </div>
@@ -129,14 +131,14 @@ export default function ForgotPassword() {
                 </p>
 
                 <div>
-                  <label className="label">Registered Email</label>
+                  <label className="label">{t("auth.email", "Email Address")}</label>
                   <div className="relative">
                     <input
                       required
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="farmer@example.com"
+                      placeholder={t("auth.enter_email", "farmer@example.com")}
                       className="input pl-9"
                     />
                     <Mail className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
@@ -148,7 +150,7 @@ export default function ForgotPassword() {
                   disabled={submitting || !email}
                   className="btn-primary w-full text-xs sm:text-sm py-2.5 shadow-sm"
                 >
-                  {submitting ? "Sending OTP..." : "Send Verification Code"}
+                  {submitting ? t("auth.sending_otp", "Sending OTP...") : t("auth.send_code", "Send Verification Code")}
                 </button>
               </form>
             )}
@@ -158,7 +160,7 @@ export default function ForgotPassword() {
                 <div className="rounded-lg bg-primary-50 p-3 text-xs text-primary-800 border border-primary-200 dark:bg-primary-950/30 dark:border-primary-900 dark:text-primary-300">
                   <div className="flex items-center gap-1.5 font-semibold text-primary-900 dark:text-primary-100 mb-1">
                     <KeyRound className="h-3.5 w-3.5" />
-                    Verification Code Sent
+                    {t("auth.code_sent", "Verification Code Sent")}
                   </div>
                   If an account exists for <strong>{email}</strong>, a one-time code has been sent to your inbox.
                 </div>
@@ -168,7 +170,7 @@ export default function ForgotPassword() {
                   <input
                     required
                     type="text"
-                    placeholder="Enter 6-digit code"
+                    placeholder={t("auth.code_placeholder", "Enter 6-digit code")}
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     className="input text-center tracking-widest font-mono"
@@ -176,13 +178,13 @@ export default function ForgotPassword() {
                 </div>
 
                 <div>
-                  <label className="label">New Password</label>
+                  <label className="label">{t("auth.new_password", "New Password")}</label>
                   <div className="relative">
                     <input
                       required
                       type={showPassword ? "text" : "password"}
                       minLength={8}
-                      placeholder="Min 8 characters"
+                      placeholder={t("auth.min_8_chars", "Min 8 characters")}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="input pl-3 pr-10"
@@ -198,12 +200,12 @@ export default function ForgotPassword() {
                 </div>
 
                 <div>
-                  <label className="label">Confirm New Password</label>
+                  <label className="label">{t("auth.confirm_password", "Confirm New Password")}</label>
                   <input
                     required
                     type="password"
                     minLength={8}
-                    placeholder="Confirm password"
+                    placeholder="••••••••"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="input"
@@ -215,7 +217,7 @@ export default function ForgotPassword() {
                   disabled={submitting}
                   className="btn-primary w-full text-xs sm:text-sm py-2.5 shadow-sm"
                 >
-                  {submitting ? "Resetting..." : "Reset Password"}
+                  {submitting ? "Resetting..." : t("auth.reset_btn", "Reset Password")}
                 </button>
 
                 <button
@@ -233,10 +235,10 @@ export default function ForgotPassword() {
                 <div className="flex justify-center text-emerald-600">
                   <CheckCircle2 className="h-10 w-10" />
                 </div>
-                <p className="text-sm font-bold text-[var(--foreground)]">Password Updated Successfully!</p>
-                <p className="text-xs text-[var(--foreground-muted)]">You can now sign in with your new password.</p>
+                <p className="text-sm font-bold text-[var(--foreground)]">{t("auth.reset_success_title", "Password Updated Successfully!")}</p>
+                <p className="text-xs text-[var(--foreground-muted)]">{t("auth.reset_success_desc", "You can now sign in with your new password.")}</p>
                 <Link to="/login" className="btn-primary inline-block w-full text-center text-xs py-2.5 shadow-sm">
-                  Log in Now
+                  {t("auth.login_now", "Log in Now")}
                 </Link>
               </div>
             )}

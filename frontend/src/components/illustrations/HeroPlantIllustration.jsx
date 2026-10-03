@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "../../contexts/LanguageContext";
 import "./HeroPlantIllustration.css";
 
 /**
@@ -19,6 +20,8 @@ import "./HeroPlantIllustration.css";
  * Fully respects `prefers-reduced-motion` by displaying the mature state statically.
  */
 export function HeroPlantIllustration({ className = "" }) {
+  const { t } = useTranslation();
+
   return (
     <div className={`hero-plant-container relative flex items-center justify-center select-none ${className}`}>
       {/* Soft Ambient Radiance */}
@@ -31,7 +34,7 @@ export function HeroPlantIllustration({ className = "" }) {
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="w-full max-w-[340px] sm:max-w-[420px] h-auto drop-shadow-sm"
-        aria-label="Illustration of a crop growing continuously from seed to harvest"
+        aria-label={t("landing.plant_aria", "Illustration of a crop growing continuously from seed to harvest")}
         role="img"
       >
         <defs>
@@ -253,7 +256,7 @@ export function HeroPlantIllustration({ className = "" }) {
             <rect width="84" height="26" rx="13" fill="var(--surface, #ffffff)" stroke="var(--border, #e2e8de)" strokeWidth="1" className="drop-shadow-xs" />
             <circle cx="14" cy="13" r="5" fill="#795548" />
             <text x="26" y="17" fill="var(--foreground, #152216)" fontSize="10" fontWeight="bold" fontFamily="sans-serif">
-              Soil N-P-K
+              {t("landing.intel_soil", "Soil N-P-K")}
             </text>
           </g>
 
@@ -262,7 +265,7 @@ export function HeroPlantIllustration({ className = "" }) {
             <rect width="90" height="26" rx="13" fill="var(--surface, #ffffff)" stroke="var(--border, #e2e8de)" strokeWidth="1" className="drop-shadow-xs" />
             <circle cx="14" cy="13" r="5" fill="#0284c7" />
             <text x="26" y="17" fill="var(--foreground, #152216)" fontSize="10" fontWeight="bold" fontFamily="sans-serif">
-              Rainfall 14mm
+              {t("landing.intel_rainfall", "Rainfall 14mm")}
             </text>
           </g>
 
@@ -271,7 +274,7 @@ export function HeroPlantIllustration({ className = "" }) {
             <rect width="92" height="26" rx="13" fill="var(--surface, #ffffff)" stroke="var(--border, #e2e8de)" strokeWidth="1" className="drop-shadow-xs" />
             <circle cx="14" cy="13" r="5" fill="#16a34a" />
             <text x="26" y="17" fill="var(--foreground, #152216)" fontSize="10" fontWeight="bold" fontFamily="sans-serif">
-              Crop Healthy
+              {t("landing.intel_healthy", "Crop Healthy")}
             </text>
           </g>
         </g>

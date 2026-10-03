@@ -343,7 +343,7 @@ export default function Assistant() {
             }`}
           >
             <Tractor className="h-3.5 w-3.5 text-primary-600" />
-            <span>Farm Context</span>
+            <span>{t("assistant.farm_context", "Farm Context")}</span>
           </button>
           <button
             onClick={() => setContextMode("general")}
@@ -354,7 +354,7 @@ export default function Assistant() {
             }`}
           >
             <Compass className="h-3.5 w-3.5 text-slate-500" />
-            <span>General Advice</span>
+            <span>{t("assistant.general_advice", "General Advice")}</span>
           </button>
 
           {contextMode === "farm" && selectedFarm && (
@@ -374,7 +374,7 @@ export default function Assistant() {
             className="btn-primary w-full text-xs"
           >
             <Plus className="mr-1.5 h-3.5 w-3.5" />
-            New Consultation
+            {t("assistant.new_consultation", "New Consultation")}
           </button>
 
           <div className="mt-2 flex-1 space-y-1 overflow-y-auto">
@@ -421,16 +421,21 @@ export default function Assistant() {
                   <Sparkles className="h-6 w-6" />
                 </div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  Namaste! How can I assist your farm today?
+                  {t("assistant.welcome_title", "Namaste! How can I assist your farm today?")}
                 </h3>
                 <p className="mt-1 max-w-md text-xs text-slate-500 dark:text-slate-400">
-                  Ask questions regarding irrigation schedules, disease identification, weather stress,
-                  or market prices. Attach crop photos anytime.
+                  {t("assistant.welcome_sub", "Ask questions regarding irrigation schedules, disease identification, weather stress, or market prices. Attach crop photos anytime.")}
                 </p>
 
                 {/* Quick Prompts */}
                 <div className="mt-6 flex flex-wrap justify-center gap-2 max-w-lg">
-                  {QUICK_ACTIONS.map((q) => (
+                  {[
+                    t("assistant.q1", "Should I irrigate my active crop tomorrow?"),
+                    t("assistant.q2", "What fertilizer dose is needed for this stage?"),
+                    t("assistant.q3", "What health issues were found in recent inspections?"),
+                    t("assistant.q4", "What are today's market prices for my crop?"),
+                    t("assistant.q5", "Am I eligible for PM-KISAN or crop subsidies?"),
+                  ].map((q) => (
                     <button
                       key={q}
                       onClick={() => sendMessage(q)}
@@ -562,7 +567,7 @@ export default function Assistant() {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                title="Attach photo of leaf, pest, or field"
+                title={t("assistant.attach_photo", "Attach photo of leaf, pest, or field")}
               >
                 <ImageIcon className="h-5 w-5" />
               </button>
@@ -592,7 +597,7 @@ export default function Assistant() {
                     sendMessage();
                   }
                 }}
-                placeholder="Ask about fertilizer, pests, irrigation, schemes, or mandi rates..."
+                placeholder={t("assistant.placeholder", "Ask about fertilizer, pests, irrigation, schemes, or mandi rates...")}
                 className="flex-1 bg-transparent px-2 py-2 text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none dark:text-white"
               />
 
@@ -601,6 +606,7 @@ export default function Assistant() {
                 onClick={() => sendMessage()}
                 disabled={sending || (!input.trim() && !pendingImage)}
                 className="btn-primary rounded-xl px-4 py-2"
+                title={t("assistant.send", "Send Query")}
               >
                 <Send className="h-4 w-4" />
               </button>

@@ -50,7 +50,7 @@ export default function Login() {
           to="/"
           className="text-xs font-semibold text-primary-700 dark:text-primary-400 hover:underline flex items-center gap-1"
         >
-          <span>← Back to Home</span>
+          <span>← {t("auth.back_to_home", "Back to Home")}</span>
         </Link>
       </header>
 
@@ -69,10 +69,10 @@ export default function Login() {
                 <Sprout className="h-6 w-6 text-primary-600 dark:text-primary-400" />
               </div>
               <h1 className="text-2xl font-extrabold tracking-tight text-[var(--foreground)]">
-                Welcome back
+                {t("auth.welcome_back", "Welcome back")}
               </h1>
               <p className="text-xs text-[var(--foreground-muted)] max-w-xs mx-auto leading-relaxed">
-                Sign in to continue growing with Annapoorna AI.
+                {t("auth.login_subtitle", "Sign in to continue growing with Annapoorna AI.")}
               </p>
             </div>
 
@@ -85,7 +85,7 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="label">Email Address</label>
+                <label className="label">{t("auth.email", "Email Address")}</label>
                 <div className="relative">
                   <input
                     required
@@ -93,7 +93,7 @@ export default function Login() {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="farmer@example.com"
+                    placeholder={t("auth.enter_email", "farmer@example.com")}
                     className="input pl-9"
                   />
                   <Mail className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
@@ -102,12 +102,12 @@ export default function Login() {
 
               <div>
                 <div className="flex items-center justify-between">
-                  <label className="label">Password</label>
+                  <label className="label">{t("auth.password", "Password")}</label>
                   <Link
                     to="/forgot-password"
                     className="text-2xs font-semibold text-primary-700 hover:underline dark:text-primary-400"
                   >
-                    Forgot password?
+                    {t("auth.forgot_password", "Forgot password?")}
                   </Link>
                 </div>
                 <div className="relative">
@@ -137,15 +137,15 @@ export default function Login() {
                 disabled={submitting}
                 className="btn-primary w-full py-2.5 text-xs sm:text-sm mt-1 shadow-sm"
               >
-                <span>{submitting ? "Signing in..." : "Login"}</span>
+                <span>{submitting ? t("auth.signing_in", "Signing in...") : t("auth.login", "Login")}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>
 
             <div className="pt-4 border-t border-[var(--border-subtle)] text-center text-xs text-[var(--foreground-muted)]">
-              Don't have an account?{" "}
+              {t("auth.no_account", "Don't have an account?")}{" "}
               <Link to="/signup" className="font-bold text-primary-700 hover:underline dark:text-primary-400">
-                Create Account
+                {t("auth.signup", "Create Account")}
               </Link>
             </div>
           </div>

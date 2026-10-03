@@ -114,7 +114,7 @@ export default function Weather() {
               <div className="flex items-start justify-between">
                 <div>
                   <span className="text-xs font-semibold uppercase tracking-wider text-primary-700 dark:text-primary-300">
-                    Live Farm Atmosphere
+                    {t("weather.live_atmosphere", "Live Farm Atmosphere")}
                   </span>
                   <div className="mt-1 flex items-baseline gap-3">
                     <span className="text-4xl font-extrabold text-slate-900 dark:text-white">
@@ -123,12 +123,12 @@ export default function Weather() {
                     <WeatherConditionBadge condition={weather.current?.condition} />
                   </div>
                   <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                    Feels like {Math.round(weather.current?.apparent_temperature_c || weather.current?.temperature_c || 0)}°C
+                    {t("weather.feels_like", "Feels like")} {Math.round(weather.current?.apparent_temperature_c || weather.current?.temperature_c || 0)}°C
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-xs text-slate-500 dark:text-slate-400 block">Relative Humidity</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 block">{t("weather.humidity", "Relative Humidity")}</span>
                   <span className="text-xl font-bold text-slate-900 dark:text-white">
                     {weather.current?.humidity || 0}%
                   </span>
@@ -138,25 +138,25 @@ export default function Weather() {
               {/* Sub-metrics */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs">
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 block">Wind Velocity</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">{t("weather.wind", "Wind Velocity")}</span>
                   <span className="font-bold text-slate-900 dark:text-white">
                     {weather.current?.wind_kph || 0} km/h
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 block">Precipitation Today</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">{t("weather.precipitation", "Precipitation Today")}</span>
                   <span className="font-bold text-slate-900 dark:text-white">
                     {weather.current?.precipitation_mm || 0} mm
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 block">Day Range (Min/Max)</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">{t("weather.day_range", "Day Range (Min/Max)")}</span>
                   <span className="font-bold text-slate-900 dark:text-white">
                     {Math.round(weather.forecast?.[0]?.min_temp_c || 0)}° / {Math.round(weather.forecast?.[0]?.max_temp_c || 0)}°
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-500 dark:text-slate-400 block">Rain Probability</span>
+                  <span className="text-slate-500 dark:text-slate-400 block">{t("weather.rain_probability", "Rain Probability")}</span>
                   <span className="font-bold text-slate-900 dark:text-white">
                     {weather.forecast?.[0]?.rain_probability || 0}%
                   </span>
@@ -201,13 +201,13 @@ export default function Weather() {
                     )}
 
                     <p className="mt-2 text-xs text-emerald-100/90 leading-relaxed">
-                      Composite index factoring chemical drift, precipitation risk, and evapotranspiration.
+                      {t("weather.composite_desc", "Composite index factoring chemical drift, precipitation risk, and evapotranspiration.")}
                     </p>
                   </div>
 
                   <div className="rounded-xl bg-white/10 p-3 backdrop-blur-xs text-xs space-y-1">
                     <div className="flex justify-between items-center">
-                      <span className="text-emerald-100">Best Fieldwork Window:</span>
+                      <span className="text-emerald-100">{t("weather.best_fieldwork", "Best Fieldwork Window")}:</span>
                       <span className="font-bold text-white">{intel.best_farming_window || "Early Morning (6 AM - 9 AM)"}</span>
                     </div>
                   </div>
@@ -221,7 +221,7 @@ export default function Weather() {
             <div className="card space-y-2">
               <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400">
                 <Wind className="h-4 w-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Spraying Advisory</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t("weather.spraying_advisory", "Spraying Advisory")}</span>
               </div>
               <p className="text-base font-bold text-slate-900 dark:text-white">
                 {intel.spraying_condition || "Favorable for Spraying"}
@@ -234,7 +234,7 @@ export default function Weather() {
             <div className="card space-y-2">
               <div className="flex items-center gap-2 text-sky-600 dark:text-sky-400">
                 <Droplets className="h-4 w-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Rain & Irrigation</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t("weather.rain_irrigation", "Rain & Irrigation")}</span>
               </div>
               <p className="text-base font-bold text-slate-900 dark:text-white">
                 {intel.rain_advisory || "Normal Watering Routine"}
@@ -247,7 +247,7 @@ export default function Weather() {
             <div className="card space-y-2">
               <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                 <ShieldAlert className="h-4 w-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Disease-Risk Signal</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t("weather.disease_risk", "Disease-Risk Signal")}</span>
               </div>
               <p className="text-base font-bold text-amber-800 dark:text-amber-300">
                 {intel.disease_risk || "Low Fungal Risk"}
@@ -263,10 +263,10 @@ export default function Weather() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
-                  7-Day Agricultural Forecast & Trends
+                  {t("weather.forecast_timeline_title", "7-Day Agricultural Forecast & Trends")}
                 </h3>
                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                  Data sourced from Open-Meteo High-Resolution Model
+                  {t("weather.forecast_source", "Data sourced from Open-Meteo High-Resolution Model")}
                 </span>
               </div>
               <WeatherTimeline forecast={weather.forecast} />

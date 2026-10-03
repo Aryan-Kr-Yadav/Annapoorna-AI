@@ -60,7 +60,7 @@ export default function Signup() {
           to="/"
           className="text-xs font-semibold text-primary-700 dark:text-primary-400 hover:underline flex items-center gap-1"
         >
-          <span>← Back to Home</span>
+          <span>← {t("auth.back_to_home", "Back to Home")}</span>
         </Link>
       </header>
 
@@ -79,10 +79,10 @@ export default function Signup() {
                 <Sprout className="h-6 w-6 text-primary-600 dark:text-primary-400" />
               </div>
               <h1 className="text-2xl font-extrabold tracking-tight text-[var(--foreground)]">
-                Create your account
+                {t("auth.register_title", "Create your account")}
               </h1>
               <p className="text-xs text-[var(--foreground-muted)] max-w-xs mx-auto leading-relaxed">
-                Start your smart farming journey with Annapoorna AI.
+                {t("auth.register_subtitle", "Start your smart farming journey with Annapoorna AI.")}
               </p>
             </div>
 
@@ -95,14 +95,14 @@ export default function Signup() {
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
               <div>
-                <label className="label">Full Name</label>
+                <label className="label">{t("auth.full_name", "Full Name")}</label>
                 <div className="relative">
                   <input
                     required
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Ramesh Patel"
+                    placeholder={t("auth.enter_name", "e.g. Ramesh Patel")}
                     className="input pl-9"
                   />
                   <User className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
@@ -110,7 +110,7 @@ export default function Signup() {
               </div>
 
               <div>
-                <label className="label">Email Address</label>
+                <label className="label">{t("auth.email", "Email Address")}</label>
                 <div className="relative">
                   <input
                     required
@@ -118,7 +118,7 @@ export default function Signup() {
                     autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="farmer@example.com"
+                    placeholder={t("auth.enter_email", "farmer@example.com")}
                     className="input pl-9"
                   />
                   <Mail className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
@@ -126,7 +126,7 @@ export default function Signup() {
               </div>
 
               <div>
-                <label className="label">Password (min 8 characters)</label>
+                <label className="label">{t("auth.min_8_chars", "Password (min 8 characters)")}</label>
                 <div className="relative">
                   <input
                     required
@@ -150,7 +150,7 @@ export default function Signup() {
               </div>
 
               <div>
-                <label className="label">Confirm Password</label>
+                <label className="label">{t("auth.confirm_password", "Confirm Password")}</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -169,15 +169,15 @@ export default function Signup() {
                 disabled={submitting}
                 className="btn-primary w-full py-2.5 text-xs sm:text-sm mt-1 shadow-sm"
               >
-                <span>{submitting ? "Creating Account..." : "Create Account"}</span>
+                <span>{submitting ? t("auth.creating_account", "Creating account...") : t("auth.signup", "Create Account")}</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
             </form>
 
             <div className="pt-4 border-t border-[var(--border-subtle)] text-center text-xs text-[var(--foreground-muted)]">
-              Already have an account?{" "}
+              {t("auth.have_account", "Already have an account?")}{" "}
               <Link to="/login" className="font-bold text-primary-700 hover:underline dark:text-primary-400">
-                Login
+                {t("auth.login", "Login")}
               </Link>
             </div>
           </div>

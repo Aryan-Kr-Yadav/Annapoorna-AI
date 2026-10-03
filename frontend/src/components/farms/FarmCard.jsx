@@ -17,6 +17,7 @@ import {
   Check,
 } from "lucide-react";
 import { useFarms } from "../../contexts/FarmContext";
+import { useTranslation } from "../../contexts/LanguageContext";
 import { formatFarmId } from "../../utils/formatters";
 import { cn } from "../../utils/cn";
 
@@ -28,6 +29,7 @@ export function FarmCard({
   onAddCrop = () => {},
   onDelete = () => {},
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { selectFarm } = useFarms();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -127,7 +129,7 @@ export function FarmCard({
                   className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-[var(--foreground)] hover:bg-[var(--surface-secondary)] transition text-left cursor-pointer"
                 >
                   <Pencil className="h-3.5 w-3.5 text-stone-400" />
-                  <span>Edit Farm</span>
+                  <span>{t("farm.edit", "Edit Farm")}</span>
                 </button>
                 <button
                   type="button"
@@ -138,7 +140,7 @@ export function FarmCard({
                   className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-[var(--foreground)] hover:bg-[var(--surface-secondary)] transition text-left cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5 text-stone-400" />
-                  <span>Add Crop</span>
+                  <span>{t("farm.addCrop", "Add Crop")}</span>
                 </button>
                 <Link
                   to={`/analytics?farm_id=${farm.id}`}
@@ -146,7 +148,7 @@ export function FarmCard({
                   className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-[var(--foreground)] hover:bg-[var(--surface-secondary)] transition text-left"
                 >
                   <BarChart3 className="h-3.5 w-3.5 text-stone-400" />
-                  <span>Analytics</span>
+                  <span>{t("common.analytics", "Analytics")}</span>
                 </Link>
                 <div className="border-t border-[var(--border)] my-1" />
                 <button
@@ -158,7 +160,7 @@ export function FarmCard({
                   className="flex items-center gap-2 w-full px-3 py-1.5 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition text-left cursor-pointer"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  <span>Delete Farm</span>
+                  <span>{t("farm.delete", "Delete Farm")}</span>
                 </button>
               </div>
             )}
@@ -169,7 +171,7 @@ export function FarmCard({
         <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-3xs font-bold uppercase tracking-wider text-[var(--foreground-muted)]">
-              All Active Crops
+              {t("farm.activeCrops", "All Active Crops")}
             </span>
             <button
               type="button"
@@ -177,13 +179,13 @@ export function FarmCard({
               className="text-2xs font-semibold text-primary-700 dark:text-primary-400 hover:underline inline-flex items-center gap-0.5 cursor-pointer"
             >
               <Plus className="h-3 w-3" />
-              <span>Add</span>
+              <span>{t("common.add", "Add")}</span>
             </button>
           </div>
 
           {activeCrops.length === 0 ? (
             <p className="text-2xs text-[var(--foreground-muted)] italic">
-              No crops currently planted in this field.
+              {t("farm.no_crops_field", "No crops currently planted in this field.")}
             </p>
           ) : (
             <div className="flex flex-wrap gap-1.5">
@@ -208,13 +210,13 @@ export function FarmCard({
         {/* Soil Profile & Irrigation Source Specifications */}
         <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-[var(--border-subtle)] text-2xs">
           <div className="p-2 rounded-lg bg-[var(--surface-secondary)]/50">
-            <span className="text-[var(--foreground-muted)] block font-medium">Soil Texture</span>
+            <span className="text-[var(--foreground-muted)] block font-medium">{t("farm.soilType", "Soil Texture")}</span>
             <span className="font-bold text-[var(--foreground)] capitalize mt-0.5 block">
               {farm.soil_type || "Loamy"}
             </span>
           </div>
           <div className="p-2 rounded-lg bg-[var(--surface-secondary)]/50">
-            <span className="text-[var(--foreground-muted)] block font-medium">Irrigation Source</span>
+            <span className="text-[var(--foreground-muted)] block font-medium">{t("farm.irrigationType", "Irrigation Source")}</span>
             <span className="font-bold text-[var(--foreground)] capitalize mt-0.5 block">
               {farm.irrigation_type || "Rainfed"}
             </span>
@@ -227,7 +229,7 @@ export function FarmCard({
         <div className="flex items-center gap-1.5 text-2xs text-[var(--foreground-muted)]">
           <Clock className="h-3.5 w-3.5 text-amber-500 shrink-0" />
           <span>
-            <strong className="text-[var(--foreground)]">{pendingTasks.length}</strong> tasks due
+            <strong className="text-[var(--foreground)]">{pendingTasks.length}</strong> {t("tasks.tasks_due", "tasks due")}
           </span>
         </div>
 
@@ -236,14 +238,14 @@ export function FarmCard({
             to={`/analytics?farm_id=${farm.id}`}
             className="text-2xs font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)] transition px-2 py-1 rounded hover:bg-[var(--surface-secondary)]"
           >
-            Analytics
+            {t("common.analytics", "Analytics")}
           </Link>
           <button
             type="button"
             onClick={handleOpenFarm}
             className="inline-flex items-center gap-1 text-xs font-bold text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 transition group-hover:translate-x-0.5 cursor-pointer"
           >
-            <span>Open Farm</span>
+            <span>{t("farm.open_farm", "Open Farm")}</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
         </div>
