@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     API_V1_PREFIX: str = "/api/v1"
     FRONTEND_URL: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: Optional[str] = None
 
     # --- Database ---
     DATABASE_URL: str = Field(
@@ -74,17 +75,30 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> List[str]:
-        origins = [o.strip() for o in self.FRONTEND_URL.split(',') if o.strip()]
-        for fb in [
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
+        raw_sources = []
+        if self.ALLOWED_ORIGINS:
+            raw_sources.extend(self.ALLOWED_ORIGINS.split(','))
+        if self.FRONTEND_URL:
+            raw_sources.extend(self.FRONTEND_URL.split(','))
+
+        # Core known frontend origins: local development + production Netlify
+        core_origins = [
+            'https://annapoorna-ai.netlify.app',
             'http://localhost:5173',
             'http://127.0.0.1:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
             'http://localhost:8000',
             'http://127.0.0.1:8000',
-        ]:
-            if fb not in origins:
-                origins.append(fb)
+        ]
+        raw_sources.extend(core_origins)
+
+        # Normalize: strip whitespace and trailing slashes
+        origins: List[str] = []
+        for raw in raw_sources:
+            clean = raw.strip().rstrip('/')
+            if clean and clean not in origins:
+                origins.append(clean)
         return origins
 
 

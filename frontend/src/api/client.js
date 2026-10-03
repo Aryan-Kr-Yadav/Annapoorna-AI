@@ -70,11 +70,11 @@ export async function request(method, path, body = undefined, isFormData = false
       body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
     });
   } catch (err) {
-    throw new ApiError(
-      "Backend server is offline or unreachable. Please verify network connection or server status.",
-      0,
-      "NETWORK_ERROR"
-    );
+    const isCorsOrNetwork = err?.name === "TypeError" || !navigator.onLine;
+    const msg = !navigator.onLine
+      ? "You appear to be offline. Please check your internet connection."
+      : "Unable to connect to the API. If this is a deployed environment, ensure backend CORS allows this origin.";
+    throw new ApiError(msg, 0, "NETWORK_ERROR", err);
   }
 
   let json = null;

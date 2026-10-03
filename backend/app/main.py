@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI):
     logger.info("Annapoorna AI 2.0 backend starting up...")
     logger.info("Environment: %s | AI Provider: Groq (text: %s, vision: %s)", settings.ENVIRONMENT, settings.text_model, settings.vision_model)
     logger.info("Auth JWKS configured: %s", bool(settings.NEON_AUTH_JWKS_URL))
+    logger.info("Allowed CORS origins (%d configured): %s", len(settings.cors_origins), settings.cors_origins)
     logger.info("Application startup complete. Ready to receive requests.")
     yield
     logger.info("Annapoorna AI 2.0 backend shutting down...")
