@@ -8,7 +8,7 @@ import { useTranslation } from "../../contexts/LanguageContext";
 export function PublicNavbar() {
   const { user } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
-  const { language, setLanguage } = useTranslation();
+  const { language, setLanguage, t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const toggleTheme = () => {
