@@ -4,9 +4,27 @@
  * and standard HTTP error classification.
  */
 
-export const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
-  "http://localhost:8000/api/v1";
+// Determine the API Base URL strictly according to environment
+function resolveApiBaseUrl() {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && typeof envUrl === "string" && envUrl.trim() !== "") {
+    return envUrl.trim().replace(/\/+$/, "");
+  }
+
+  // In production (e.g. Netlify/Vercel deployment), do NOT silently fallback to localhost.
+  if (import.meta.env.PROD) {
+    const errorMsg =
+      "[CRITICAL CONFIG ERROR] VITE_API_URL environment variable is missing in production! " +
+      "Set VITE_API_URL in Netlify Site Configuration (e.g., https://your-backend.onrender.com/api/v1) and trigger a redeploy.";
+    console.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // Local development default only
+  return "http://localhost:8000/api/v1";
+}
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export class ApiError extends Error {
   constructor(message, status = 0, code = "API_ERROR", detail = null) {
